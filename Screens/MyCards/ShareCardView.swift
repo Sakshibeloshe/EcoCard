@@ -1,0 +1,156 @@
+
+import SwiftUI
+
+struct ShareCardView: View {
+    @Environment(\.dismiss) var dismiss
+    let card: CardModel
+    
+    @State private var shareMode: ShareMode = .touch // .touch or .qr
+    @State private var isAnimating = false
+    
+    enum ShareMode {
+        case touch, qr
+    }
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            
+            VStack {
+                // Top Bar
+                HStack {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(.white.opacity(0.5))
+                        .font(.system(size: 16, weight: .medium))
+                    
+                    Spacer()
+                    
+                    // Segmented Control / Toggle
+                    HStack(spacing: 0) {
+                        toggleButton(title: "TOUCH", mode: .touch)
+                        toggleButton(title: "QR", mode: .qr)
+                    }
+                    .padding(4)
+                    .background(Color.white.opacity(0.1))
+                    .clipShape(Capsule())
+                    
+                    Spacer()
+                    
+                    Button {
+                        // Share via system sheet
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+
+                Spacer()
+                
+                // Content
+                TabView(selection: $shareMode) {
+                    touchModeView
+                        .tag(ShareMode.touch)
+                    
+                    qrModeView
+                        .tag(ShareMode.qr)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(height: 500) // Adjust as needed
+                
+                Spacer()
+            }
+        }
+    }
+    
+    private func toggleButton(title: String, mode: ShareMode) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                shareMode = mode
+            }
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        } label: {
+            Text(title)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(shareMode == mode ? .black : .white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule()
+                        .fill(shareMode == mode ? Color.white : Color.clear)
+                )
+        }
+    }
+    
+    private var touchModeView: some View {
+        VStack(spacing: 40) {
+            // Card Preview (Small)
+            CardView(card: card)
+                .frame(width: 280) // Reduced size
+                .scaleEffect(0.8)
+            
+            ZStack {
+                // Ripples
+                ForEach(0..<3) { i in
+                    Circle()
+                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        .frame(width: 100, height: 100)
+                        .scaleEffect(isAnimating ? 3 : 1)
+                        .opacity(isAnimating ? 0 : 1)
+                        .animation(
+                            Animation.easeOut(duration: 2.5)
+                                .repeatForever(autoreverses: false)
+                                .delay(Double(i) * 0.8),
+                            value: isAnimating
+                        )
+                }
+                
+                // Icon
+                Image(systemName: "wave.3.right") // Or similar NFC icon
+                    .font(.system(size: 40))
+                    .foregroundColor(.white)
+                    .offset(x: -4) // Center optically
+            }
+            .onAppear {
+                isAnimating = true
+            }
+            
+            VStack(spacing: 8) {
+                Text("Tap Devices")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                
+                Text("HOLD TOP EDGES TOGETHER")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white.opacity(0.35))
+                    .tracking(1.4)
+            }
+        }
+    }
+    
+    private var qrModeView: some View {
+        VStack(spacing: 40) {
+             // Card Preview
+             CardView(card: card)
+                 .frame(width: 280)
+                 .scaleEffect(0.8)
+
+             // QR Code Placeholder
+             Image(systemName: "qrcode")
+                 .resizable()
+                 .aspectRatio(contentMode: .fit)
+                 .frame(width: 180, height: 180)
+                 .foregroundColor(.white)
+                 .padding(20)
+                 .background(Color.white.opacity(0.1))
+                 .cornerRadius(20)
+
+             Text("SCAN TO CONNECT")
+                 .font(.system(size: 12, weight: .bold))
+                 .foregroundColor(.white.opacity(0.35))
+                 .tracking(1.4)
+        }
+    }
+}
