@@ -5,8 +5,8 @@ struct CardFrontView: View {
     
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(card.uiColor.gradient)
+            PremiumCardPattern(backgroundColor: backgroundColor)
+                .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
                 .shadow(color: .black.opacity(0.15), radius: 18, x: 0, y: 10)
 
             VStack(alignment: .leading, spacing: 14) {
@@ -16,13 +16,13 @@ struct CardFrontView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(card.fullName)
                             .font(.system(size: 26, weight: .heavy, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Color.charcoalGrey)
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
 
                         Text(frontSubtitle)
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.85))
+                            .foregroundStyle(Color.charcoalGrey.opacity(0.75))
                             .lineLimit(1)
                     }
 
@@ -30,9 +30,9 @@ struct CardFrontView: View {
 
                     Image(systemName: card.type.icon)
                         .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(Color.charcoalGrey.opacity(0.8))
                         .padding(10)
-                        .background(.white.opacity(0.15))
+                        .background(Color.charcoalGrey.opacity(0.1))
                         .clipShape(Circle())
                 }
 
@@ -40,10 +40,10 @@ struct CardFrontView: View {
                 if let intent = card.intent, !intent.isEmpty {
                     Text(intent)
                         .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.charcoalGrey)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 9)
-                        .background(.white.opacity(0.18))
+                        .background(Color.charcoalGrey.opacity(0.1))
                         .clipShape(Capsule())
                 }
 
@@ -59,6 +59,17 @@ struct CardFrontView: View {
         }
         .frame(height: 210)
         .padding(.horizontal, 16)
+    }
+    
+    private var backgroundColor: Color {
+        if card.isReceived { return .skyBlue }
+        switch card.type {
+        case .personal: return .softRose
+        case .business: return .freshLime
+        case .social: return .skyBlue
+        case .event: return .lavenderPurple
+        case .blank: return .softTerracotta
+        }
     }
 
     private var frontSubtitle: String {

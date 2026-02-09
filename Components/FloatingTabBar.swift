@@ -13,61 +13,66 @@ struct FloatingTabBar: View {
         VStack {
             Spacer()
 
-            HStack {
-                Spacer()
-
-                HStack(spacing: 18) {
-
-                    Button {
-                        selectedTab = .myCards
-                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                    } label: {
-                        Image(systemName: "rectangle.stack.fill")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(selectedTab == .myCards ? .black : .white.opacity(0.35))
-                            .frame(width: 46, height: 46)
-                            .background(selectedTab == .myCards ? Color.white.opacity(0.9) : Color.clear)
-                            .clipShape(Circle())
-                    }
-
-                    Button {
-                        selectedTab = .add
-                        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 22, weight: .heavy))
-                            .foregroundStyle(.black)
-                            .frame(width: 62, height: 62)
-                            .background(Color(red: 1.0, green: 0.78, blue: 0.84))
-                            .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.35), radius: 18, y: 12)
-                    }
-
-                    Button {
-                        selectedTab = .inbox
-                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                    } label: {
-                        Image(systemName: "person.2.fill")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(selectedTab == .inbox ? .black : .white.opacity(0.35))
-                            .frame(width: 46, height: 46)
-                            .background(selectedTab == .inbox ? Color.white.opacity(0.9) : Color.clear)
-                            .clipShape(Circle())
-                    }
-
+            HStack(spacing: 24) {
+                // My Cards Tab
+                TabButton(
+                    icon: "rectangle.fill",
+                    isSelected: selectedTab == .myCards,
+                    activeColor: .freshLime
+                ) {
+                    selectedTab = .myCards
+                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                 }
-                .padding(.horizontal, 18)
-                .padding(.vertical, 12)
-                .background(.white.opacity(0.06))
-                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .stroke(.white.opacity(0.08), lineWidth: 1)
-                )
-                .padding(.bottom, 24)
 
-                Spacer()
+                // Add Card Tab
+                TabButton(
+                    icon: "plus",
+                    isSelected: selectedTab == .add,
+                    activeColor: .softRose
+                ) {
+                    selectedTab = .add
+                    UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                }
+
+                // Inbox Tab
+                TabButton(
+                    icon: "person.2.fill",
+                    isSelected: selectedTab == .inbox,
+                    activeColor: .softRose
+                ) {
+                    selectedTab = .inbox
+                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                }
             }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
+            .background(Color.charcoalGrey)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(Color.stealthWhite, lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+            .padding(.bottom, 24)
+        }
+    }
+}
+
+struct TabButton: View {
+    let icon: String
+    let isSelected: Bool
+    let activeColor: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(isSelected ? Color.charcoalGrey : Color.white.opacity(0.4))
+                .frame(width: 54, height: 54)
+                .background(isSelected ? activeColor : Color.clear)
+                .clipShape(Circle())
+                .accessibilityLabel(Text(isSelected ? "Selected tab" : "Tab"))
         }
     }
 }

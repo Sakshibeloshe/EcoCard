@@ -6,7 +6,7 @@ struct RootTabView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.obsidianBlack.ignoresSafeArea()
 
             Group {
                 switch selectedTab {

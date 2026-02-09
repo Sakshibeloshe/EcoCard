@@ -38,7 +38,7 @@ struct InboxView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.obsidianBlack.ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
@@ -67,7 +67,7 @@ struct InboxView: View {
                         .foregroundStyle(grouped ? .black : .white.opacity(0.35))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .background(grouped ? Color(red: 1.0, green: 0.78, blue: 0.84) : .white.opacity(0.06))
+                        .background(grouped ? Color.softRose : Color.white.opacity(0.06))
                         .clipShape(Capsule())
                     }
 

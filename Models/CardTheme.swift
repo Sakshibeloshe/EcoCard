@@ -17,11 +17,11 @@ enum CardTheme: String, CaseIterable, Identifiable, Codable {
 
     var color: Color {
         switch self {
-        case .pink: return Color(red: 1.0, green: 0.78, blue: 0.84)
-        case .lime: return Color(red: 0.84, green: 0.92, blue: 0.62)
-        case .sky: return Color(red: 0.72, green: 0.92, blue: 1.0)
-        case .lavender: return Color(red: 0.82, green: 0.74, blue: 1.0)
-        case .peach: return Color(red: 1.0, green: 0.86, blue: 0.66)
+        case .pink: return .softRose
+        case .lime: return .freshLime
+        case .sky: return .skyBlue
+        case .lavender: return .lavenderPurple
+        case .peach: return .softTerracotta
         }
     }
 }
