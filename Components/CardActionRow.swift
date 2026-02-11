@@ -33,11 +33,12 @@ struct CardActionRow: View {
                     .font(.system(size: 14, weight: .bold, design: .rounded))
             }
             .foregroundStyle(isPrimary ? .black : .white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 11)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
-            .background(isPrimary ? .white : .white.opacity(0.18))
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .background(isPrimary ? .white : .white.opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
         }
         .buttonStyle(.plain)
     }

@@ -15,36 +15,25 @@ struct CardFrontView: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(card.fullName)
-                            .font(.system(size: 26, weight: .heavy, design: .rounded))
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
                             .foregroundStyle(Color.charcoalGrey)
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
 
                         Text(frontSubtitle)
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
-                            .foregroundStyle(Color.charcoalGrey.opacity(0.75))
+                            .font(.system(size: 18, weight: .medium, design: .rounded))
+                            .foregroundStyle(Color.charcoalGrey.opacity(0.6))
                             .lineLimit(1)
                     }
 
                     Spacer()
 
                     Image(systemName: card.type.icon)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(Color.charcoalGrey.opacity(0.8))
-                        .padding(10)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(Color.charcoalGrey.opacity(0.6))
+                        .frame(width: 48, height: 48)
                         .background(Color.charcoalGrey.opacity(0.1))
                         .clipShape(Circle())
-                }
-
-                // Intent badge (your USP)
-                if let intent = card.intent, !intent.isEmpty {
-                    Text(intent)
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color.charcoalGrey)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 9)
-                        .background(Color.charcoalGrey.opacity(0.1))
-                        .clipShape(Capsule())
                 }
 
                 Spacer(minLength: 0)

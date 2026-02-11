@@ -24,7 +24,7 @@ struct RootTabView: View {
                     }
                 }
             }
-            .padding(.bottom, 90)
+            // Removed padding to allow content to flow behind floating UI
 
             FloatingTabBar(selectedTab: $selectedTab)
         }

@@ -46,13 +46,9 @@ struct InboxView: View {
                 TopNavBar(eventManager: eventManager, showEventSheet: $showEventSheet)
                     .padding(.horizontal, 16)
 
-                Text("Inbox")
-                    .font(.system(size: 54, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.white)
+                SearchBar(text: $search, placeholder: "Search connections")
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
-
-                SearchBar(text: $search, placeholder: "Search connections")
 
                 HStack(spacing: 10) {
                     Button {
@@ -77,16 +73,22 @@ struct InboxView: View {
 
                 FolderListView()
 
-                VStack(spacing: 18) {
+                VStack(spacing: 34) {
                     ForEach(filtered) { card in
-                        VStack(alignment: .leading, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 14) {
 
                             if let event = card.eventName, grouped {
-                                Text(event.uppercased())
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                                    .foregroundStyle(.white.opacity(0.25))
-                                    .tracking(3)
-                                    .padding(.horizontal, 16)
+                                HStack(spacing: 12) {
+                                    Text(event.uppercased())
+                                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.white.opacity(0.4))
+                                        .tracking(2)
+                                    
+                                    Rectangle()
+                                        .fill(Color.white.opacity(0.1))
+                                        .frame(height: 1)
+                                }
+                                .padding(.horizontal, 16)
                             }
 
                             NavigationLink {
@@ -96,36 +98,54 @@ struct InboxView: View {
                             }
                             .buttonStyle(.plain)
                             .padding(.horizontal, 16)
-                            .overlay(alignment: .bottomTrailing) {
-                                Button {
-                                    store.toggleFavorite(card)
-                                } label: {
-                                    Image(systemName: card.isFavorite ? "star.fill" : "star")
-                                        .foregroundStyle(card.isFavorite ? .yellow : .white.opacity(0.25))
-                                        .padding(14)
+
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(alignment: .top) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(card.fullName)
+                                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                                            .foregroundStyle(.white)
+                                        
+                                        Text(card.title.uppercased())
+                                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                                            .foregroundStyle(.white.opacity(0.4))
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Button {
+                                        store.toggleFavorite(card)
+                                    } label: {
+                                        Image(systemName: card.isFavorite ? "star.fill" : "star")
+                                            .foregroundStyle(card.isFavorite ? .yellow : .white.opacity(0.15))
+                                            .font(.system(size: 18))
+                                    }
                                 }
-                                .padding(.trailing, 18)
-                                .padding(.bottom, 18)
+                                .padding(.top, 4)
+
+                                HStack {
+                                    Button {
+                                        folderSheetCard = card
+                                    } label: {
+                                        Text("Add to Folder")
+                                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                                            .foregroundStyle(.white.opacity(0.4))
+                                    }
+
+                                    Spacer()
+
+                                    if let event = card.eventName {
+                                        Text("Met at \(event.lowercased())")
+                                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                                            .foregroundStyle(.white.opacity(0.25))
+                                    } else if !card.note.isEmpty {
+                                        Text(card.note)
+                                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                                            .foregroundStyle(.white.opacity(0.25))
+                                    }
+                                }
                             }
-
-                            HStack {
-                                Button {
-                                    folderSheetCard = card
-                                } label: {
-                                    Text("Add to Folder")
-                                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                                        .foregroundStyle(.white.opacity(0.35))
-                                }
-
-                                Spacer()
-
-                                if !card.note.isEmpty {
-                                    Text(card.note)
-                                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                                        .foregroundStyle(.white.opacity(0.25))
-                                }
-                            }
-                            .padding(.horizontal, 18)
+                            .padding(.horizontal, 20)
                         }
                     }
                 }

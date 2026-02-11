@@ -46,14 +46,15 @@ struct FloatingTabBar: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 10)
-            .background(Color.charcoalGrey)
+            .background(.ultraThinMaterial)
+            .background(Color.charcoalGrey.opacity(0.8))
             .clipShape(Capsule())
             .overlay(
                 Capsule()
-                    .stroke(Color.stealthWhite, lineWidth: 1)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
-            .padding(.bottom, 24)
+            .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 10)
+            .padding(.bottom, 10) // Lessen constraint from bottom
         }
     }
 }
