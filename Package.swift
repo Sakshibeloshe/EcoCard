@@ -17,11 +17,11 @@ let package = Package(
             name: "wwdc",
             targets: ["AppModule"],
             bundleIdentifier: "pradeep.biswas-mitwpu.edu.in.wwdc",
-            teamIdentifier: "J4B79XL3D5",
+            teamIdentifier: "M693R36JPD",
             displayVersion: "1.0",
             bundleVersion: "1",
             appIcon: .placeholder(icon: .note),
-            accentColor: .presetColor(.mint),
+            accentColor: .presetColor(.pink),
             supportedDeviceFamilies: [
                 .pad,
                 .phone
@@ -40,5 +40,5 @@ let package = Package(
             path: "."
         )
     ],
-    swiftLanguageVersions: [.v6]
+    swiftLanguageVersions: [.version("6")]
 )

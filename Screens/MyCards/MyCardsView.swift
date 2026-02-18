@@ -15,7 +15,7 @@ struct MyCardsView: View {
     @State private var showEventSheet = false
     @State private var selectedCard: CardModel?
 
-    private let filters = ["All", "Personal", "Business", "Social", "Event", "Custom"]
+    private let filters = ["All", "Personal", "Business", "Social", "Event"]
 
     var filteredCards: [CardModel] {
         let base = store.myCards
@@ -26,7 +26,6 @@ struct MyCardsView: View {
             case "Business": return base.filter { $0.type == .business }
             case "Social": return base.filter { $0.type == .social }
             case "Event": return base.filter { $0.type == .event }
-            case "Custom": return base.filter { $0.type == .blank }
             default: return base
             }
         }()
@@ -42,7 +41,7 @@ struct MyCardsView: View {
             ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
 
-                TopNavBar(eventManager: eventManager, showEventSheet: $showEventSheet)
+                TopNavBar()
                     .padding(.horizontal, 16)
                 
                 Text("My Stack")
@@ -54,8 +53,7 @@ struct MyCardsView: View {
                 SearchBar(text: $search, placeholder: "Search cards")
 
                 FilterPills(items: filters, selected: $filter)
-
-                FolderListView()
+                    .padding(.horizontal, 16)
 
                 LazyVStack(spacing: 22) {
                     ForEach(filteredCards) { card in

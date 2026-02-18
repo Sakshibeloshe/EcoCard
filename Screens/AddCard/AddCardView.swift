@@ -17,7 +17,7 @@ struct AddCardView: View {
 
                 VStack(alignment: .leading, spacing: 20) {
 
-                    TopNavBar(eventManager: eventManager, showEventSheet: $showEventDialog)
+                    TopNavBar()
 
                     Text("Create Card")
                         .font(.system(size: 46, weight: .bold, design: .rounded))

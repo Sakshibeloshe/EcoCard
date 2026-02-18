@@ -16,7 +16,7 @@ struct InboxView: View {
     @State private var folderSheetCard: CardModel?
     @State private var showEventSheet = false
 
-    private let filters = ["All", "Personal", "Business", "Social", "Event", "Custom"]
+    private let filters = ["All", "Personal", "Business", "Social", "Event"]
 
     var filtered: [CardModel] {
         let base = store.inboxCards
@@ -27,7 +27,6 @@ struct InboxView: View {
             case "Business": return base.filter { $0.type == .business }
             case "Social": return base.filter { $0.type == .social }
             case "Event": return base.filter { $0.type == .event }
-            case "Custom": return base.filter { $0.type == .blank }
             default: return base
             }
         }()
@@ -43,35 +42,15 @@ struct InboxView: View {
             ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
 
-                TopNavBar(eventManager: eventManager, showEventSheet: $showEventSheet)
+                TopNavBar()
                     .padding(.horizontal, 16)
 
                 SearchBar(text: $search, placeholder: "Search connections")
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
-                HStack(spacing: 10) {
-                    Button {
-                        grouped.toggle()
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "square.grid.2x2.fill")
-                            Text("Grouped")
-                        }
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(grouped ? .black : .white.opacity(0.35))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(grouped ? Color.softRose : Color.white.opacity(0.06))
-                        .clipShape(Capsule())
-                    }
-
-                    FilterPills(items: filters, selected: $filter)
-                }
-                .padding(.horizontal, 16)
-
-                FolderListView()
+                FilterPills(items: filters, selected: $filter)
+                    .padding(.horizontal, 16)
 
                 VStack(spacing: 34) {
                     ForEach(filtered) { card in

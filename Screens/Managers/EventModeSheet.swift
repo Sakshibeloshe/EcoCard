@@ -17,65 +17,100 @@ struct EventModeSheet: View {
     @State private var folderName: String = ""
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
+        ZStack {
+            Color.obsidianBlack.ignoresSafeArea()
 
-                VStack(alignment: .leading, spacing: 18) {
+            VStack(spacing: 32) {
+                // Top Bolt Icon (Image 3)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color.softRose)
+                        .frame(width: 64, height: 64)
+                    
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(.black)
+                }
+                .padding(.top, 40)
 
-                    Text("Start Event Mode")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                VStack(spacing: 8) {
+                    Text("Event Setup")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
+                    
+                    Text("ORGANIZE YOUR CONNECTIONS")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.3))
+                        .tracking(2)
+                }
 
-                    Text("Cards received during this event will automatically be grouped.")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white.opacity(0.5))
+                VStack(alignment: .leading, spacing: 24) {
+                    // Event Name Field
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("EVENT NAME")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.3))
+                            .tracking(1.5)
+                            .padding(.leading, 4)
 
-                    VStack(spacing: 14) {
-
-                        TextField("Event name (ex: Hackathon 2026)", text: $eventName)
-                            .textFieldStyle(.plain)
-                            .padding(16)
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-                        TextField("Folder name (ex: February)", text: $folderName)
-                            .textFieldStyle(.plain)
-                            .padding(16)
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        TextField("e.g. Figma Config 2026", text: $eventName)
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(20)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(Color.white.opacity(0.06))
+                            )
                     }
 
-                    Spacer()
+                    // Folder / Tag Field
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("FOLDER / TAG")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.3))
+                            .tracking(1.5)
+                            .padding(.leading, 4)
 
-                    Button {
-                        eventManager.goLive(event: eventName, folder: folderName)
-                        store.createFolder(name: folderName)
-                        dismiss()
-                    } label: {
-                        Text("Go Live")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color.pink)
-                            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                        TextField("e.g. Design Leads", text: $folderName)
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(20)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(Color.white.opacity(0.06))
+                            )
                     }
-                    .disabled(eventName.isEmpty || folderName.isEmpty)
-                    .opacity(eventName.isEmpty || folderName.isEmpty ? 0.5 : 1)
+                }
+                .padding(.horizontal, 8)
 
+                Spacer()
+
+                // Activate Session Button
+                Button {
+                    eventManager.goLive(event: eventName, folder: folderName)
+                    store.createFolder(name: folderName)
+                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                    dismiss()
+                } label: {
+                    Text("ACTIVATE SESSION")
+                        .font(.system(size: 14, weight: .black, design: .rounded))
+                        .tracking(1)
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 64)
+                        .background(
+                            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                .fill(Color.softRose)
+                        )
                 }
-                .padding(22)
+                .disabled(eventName.isEmpty || folderName.isEmpty)
+                .opacity(eventName.isEmpty || folderName.isEmpty ? 0.4 : 1.0)
+                .padding(.bottom, 20)
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") { dismiss() }
-                        .foregroundColor(.white.opacity(0.7))
-                }
-            }
+            .padding(24)
         }
-        .presentationDetents([.medium])
-        .applyPresentationCornerRadiusIfAvailable(32)
+        .presentationDetents([.height(600)])
+        .presentationDragIndicator(.visible)
     }
 }
 private extension View {

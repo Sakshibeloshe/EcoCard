@@ -8,6 +8,7 @@ struct CardEditorView: View {
 
     // Holds values typed by user
     @State private var values: [String: String] = [:]
+    @StateObject private var profile = ProfileStore.shared
 
     // Intent picker
     @State private var selectedIntent: String = FieldCatalog.intents.first ?? ""
@@ -23,6 +24,34 @@ struct CardEditorView: View {
     
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dismiss) private var dismiss
+
+    init(type: CardType) {
+        self.type = type
+        
+        let profile = ProfileStore.shared
+        var initialValues: [String: String] = [:]
+        
+        // General fields
+        initialValues["fullName"] = profile.fullName
+        initialValues["title"] = profile.title
+        initialValues["company"] = profile.company
+        initialValues["bio"] = profile.bio
+        initialValues["email"] = profile.email
+        initialValues["website"] = profile.website
+        initialValues["phone"] = profile.phone
+        initialValues["pronouns"] = profile.pronouns
+        
+        // Socials mapping
+        initialValues["instagram"] = profile.instagram
+        initialValues["linkedin"] = profile.linkedIn
+        initialValues["github"] = profile.github
+        initialValues["portfolio"] = profile.portfolio
+        
+        // Specific field catalog keys
+        initialValues["displayName"] = profile.fullName
+        
+        _values = State(initialValue: initialValues)
+    }
 
     var body: some View {
         ZStack {

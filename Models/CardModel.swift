@@ -15,6 +15,7 @@ struct CardModel: Identifiable, Hashable, Codable {
     var website: String?
     var phone: String?
     var pronouns: String
+    var photo: String? // Optional photo URL or base64
     
     // Socials (Optionals)
     var instagram: String?
@@ -53,7 +54,8 @@ struct CardModel: Identifiable, Hashable, Codable {
         tags: [String] = [],
         folderId: UUID? = nil,
         eventName: String? = nil,
-        intent: String? = nil
+        intent: String? = nil,
+        photo: String? = nil
     ) {
         self.id = id
         self.type = type
@@ -77,6 +79,7 @@ struct CardModel: Identifiable, Hashable, Codable {
         self.folderId = folderId
         self.eventName = eventName
         self.intent = intent
+        self.photo = photo
     }
     
     // MARK: - Computed Properties

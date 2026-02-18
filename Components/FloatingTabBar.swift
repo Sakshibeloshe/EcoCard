@@ -38,7 +38,7 @@ struct FloatingTabBar: View {
                 TabButton(
                     icon: "person.2.fill",
                     isSelected: selectedTab == .inbox,
-                    activeColor: .softRose
+                    activeColor: .skyBlue
                 ) {
                     selectedTab = .inbox
                     UIImpactFeedbackGenerator(style: .soft).impactOccurred()

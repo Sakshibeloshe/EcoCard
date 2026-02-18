@@ -44,10 +44,15 @@ struct CardFrontView: View {
                     secondary: card.secondaryAction()
                 )
             }
-            .padding(22)
+            .padding(32) // Inner Padding: 32pt
+            
+            // Border Width: 2pt
+            RoundedRectangle(cornerRadius: 40, style: .continuous)
+                .stroke(Color.black.opacity(0.1), lineWidth: 2)
         }
-        .frame(height: 210)
-        .padding(.horizontal, 16)
+        .aspectRatio(1.5, contentMode: .fit) // Height: Calculated as Width / 1.5
+        .clipShape(RoundedRectangle(cornerRadius: 40, style: .continuous)) // Corner Radius: 40pt
+        .padding(.horizontal, 20) // Width: Full Width minus 40px padding (20 each side)
     }
     
     private var backgroundColor: Color {
