@@ -139,11 +139,15 @@ struct ReceiveModeView: View {
                     receivedCard = card
                 }
                 // Auto-open detail after brief pause
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                Task {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
                     showCardDetail = true
                 }
             }
-            transfer.startReceiverMode()
+            Task {
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                transfer.startReceiverMode()
+            }
         }
         .onDisappear {
             transfer.stopReceiverMode()
@@ -170,7 +174,7 @@ struct ReceiveModeView: View {
     private var statusSub: some View {
         switch transfer.state {
         case .browsing:
-            Text("Ask them to open a card and tap TOUCH")
+            Text("Ask them to open a card and tap BEAM")
         case .connecting:
             Text("Connecting…")
         case .connected:

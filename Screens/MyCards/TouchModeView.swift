@@ -87,7 +87,10 @@ struct TouchModeView: View {
         }
         .onAppear {
             glowPulse = true
-            transfer.startSenderMode()
+            Task {
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                transfer.startSenderMode()
+            }
         }
         .onChange(of: transfer.state) { newState in
             if case .connected = newState {
@@ -95,7 +98,8 @@ struct TouchModeView: View {
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
                     cardOffset = -8
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                Task {
+                    try? await Task.sleep(nanoseconds: 300_000_000)
                     transfer.sendCard(card.toPayload())
                 }
             }
@@ -105,7 +109,8 @@ struct TouchModeView: View {
                     cardOffset = -60
                     showSuccess = true
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                Task {
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
                     dismiss()
                 }
             }
@@ -163,7 +168,7 @@ struct TouchModeView: View {
         case .idle:
             label("Starting…", sub: nil)
         case .advertising:
-            label("Ready to Tap", sub: "Hold top edges together")
+            label("Ready to Beam", sub: "Hold phones near each other")
         case .browsing:
             label("Searching…", sub: nil)
         case .connecting(let name):

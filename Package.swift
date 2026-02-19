@@ -16,7 +16,7 @@ let package = Package(
         .iOSApplication(
             name: "wwdc",
             targets: ["AppModule"],
-            bundleIdentifier: "com.abhinaya-rajarajan.PCOSApp",
+            bundleIdentifier: "pradeep.biswas-mitwpu.edu.in.wwdc",
             teamIdentifier: "M693R36JPD",
             displayVersion: "1.0",
             bundleVersion: "1",
@@ -31,6 +31,10 @@ let package = Package(
                 .landscapeRight,
                 .landscapeLeft,
                 .portraitUpsideDown(.when(deviceFamilies: [.pad]))
+            ],
+            capabilities: [
+                .localNetwork(purposeString: "EcoCard needs local network access to discover nearby devices and share cards offline.", bonjourServiceTypes: ["_ecocardshare._tcp", "_ecocardshare._udp"]),
+                .bluetoothAlways(purposeString: "EcoCard uses Bluetooth for proximity-based card sharing.")
             ]
         )
     ],

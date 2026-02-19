@@ -1,7 +1,7 @@
 import Foundation
 
 /// Lightweight Codable representation of a CardModel used for peer-to-peer transfer.
-struct CardTransferPayload: Codable {
+struct CardTransferPayload: Codable, Sendable {
     let id: String
     let type: String        // CardType.rawValue
     let theme: String       // CardTheme.rawValue
