@@ -5,16 +5,17 @@ struct TopNavBar: View {
     @EnvironmentObject var eventManager: EventModeManager
     @State private var showSettings = false
     @State private var showEventSheet = false
+    @State private var showReceiverMode = false
 
     var body: some View {
         VStack(spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
-                // Receiver Mode Button (Primary)
+                // Receiver Mode Button — opens ReceiveModeView
                 Button {
-                    eventManager.toggleReceiver()
+                    showReceiverMode = true
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 } label: {
-                    ReceiverModeButton(isLive: eventManager.isReceiverActive)
+                    ReceiverModeButton(isLive: showReceiverMode)
                 }
 
                 // Event Mode Button (Contextual)
@@ -46,8 +47,8 @@ struct TopNavBar: View {
                         )
                 }
             }
-            // Banner section
-            if eventManager.isReceiverActive {
+            // Banner shown while receiver sheet is active
+            if showReceiverMode {
                 HStack(spacing: 12) {
                     GlowingDotView()
                     
@@ -75,9 +76,14 @@ struct TopNavBar: View {
         .sheet(isPresented: $showEventSheet) {
             EventModeSheet()
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: eventManager.isReceiverActive)
+        .fullScreenCover(isPresented: $showReceiverMode) {
+            ReceiveModeView()
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showReceiverMode)
     }
 }
+
+
 
 struct GlowingDotView: View {
     @State private var isAnimating = false

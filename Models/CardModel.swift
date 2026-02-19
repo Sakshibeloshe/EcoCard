@@ -166,4 +166,25 @@ extension CardModel {
         let actions = availableActions()
         return actions.first(where: { $0.type != primary.type })
     }
+
+    /// Converts this card into a lightweight payload for peer-to-peer transfer.
+    func toPayload() -> CardTransferPayload {
+        CardTransferPayload(
+            id: id.uuidString,
+            type: type.rawValue,
+            theme: theme.rawValue,
+            displayName: fullName,
+            title: title,
+            company: company,
+            bio: bio,
+            email: email,
+            phone: phone,
+            website: website,
+            pronouns: pronouns,
+            instagram: instagram,
+            linkedIn: linkedIn,
+            github: github,
+            portfolio: portfolio
+        )
+    }
 }

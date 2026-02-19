@@ -59,81 +59,40 @@ final class AppStore: ObservableObject {
     
     func fetchMyCards() {
         let context = PersistenceController.shared.container.viewContext
-        // Build a typed fetch request explicitly using the entity name to avoid generic mismatch
         let request = NSFetchRequest<CDCard>(entityName: "CDCard")
-        // Sort by createdAt descending
         request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
-        
+
         do {
             let results = try context.fetch(request)
-            let models: [CardModel] = results.compactMap { card in
-                let id = card.value(forKey: "id") as? UUID ?? UUID()
-                let createdAt = card.value(forKey: "createdAt") as? Date ?? Date()
-                let isFavorite = (card.value(forKey: "isFavorite") as? Bool) ?? false
-                let folderId = card.value(forKey: "folderId") as? UUID
+            let models: [CardModel] = results.compactMap { cd in
+                // Resolve type
+                let type: CardType = CardType(rawValue: cd.typeRaw ?? "") ?? .personal
 
-                // Decode CardType
-                let type: CardType
-                if let raw = card.value(forKey: "typeRaw") as? String, let value = CardType(rawValue: raw) {
-                    type = value
-                } else if let first = CardType.allCases.first {
-                    type = first
-                } else {
-                    fatalError("CardType has no cases to default to")
-                }
-
-                // Decode CardTheme (fallback to .pink)
-                let theme: CardTheme
-                if let raw = card.value(forKey: "theme") as? String, let value = CardTheme(rawValue: raw) {
-                    theme = value
-                } else if let first = CardTheme.allCases.first {
-                    theme = first
-                } else {
-                    fatalError("CardTheme has no cases to default to")
-                }
-
-                let fullName = card.value(forKey: "displayName") as? String ?? ""
-                let title = card.value(forKey: "subtitle") as? String ?? ""
-                let company = card.value(forKey: "org") as? String ?? ""
-                let bio = card.value(forKey: "bio") as? String ?? ""
-
-                // Optional contact/socials if present in flat storage (these may be nil in Core Data)
-                let email = card.value(forKey: "email") as? String
-                let website = card.value(forKey: "website") as? String
-                let phone = card.value(forKey: "phone") as? String
-                let pronouns = card.value(forKey: "pronouns") as? String ?? ""
-                let instagram = card.value(forKey: "instagram") as? String
-                let linkedIn = card.value(forKey: "linkedin") as? String
-                let github = card.value(forKey: "github") as? String
-                let portfolio = card.value(forKey: "portfolio") as? String
-                let note = card.value(forKey: "note") as? String ?? ""
-                let tags = card.value(forKey: "tags") as? [String] ?? []
-                let eventName = card.value(forKey: "eventName") as? String
-                let intent = card.value(forKey: "intent") as? String
+                // Resolve theme from themeHex (stored as rawValue)
+                let theme: CardTheme = CardTheme(rawValue: cd.themeHex ?? "") ?? .pink
 
                 return CardModel(
-                    id: id,
+                    id: cd.id ?? UUID(),
                     type: type,
                     theme: theme,
-                    fullName: fullName,
-                    title: title,
-                    company: company,
-                    bio: bio,
-                    email: email,
-                    website: website,
-                    phone: phone,
-                    pronouns: pronouns,
-                    instagram: instagram,
-                    linkedIn: linkedIn,
-                    github: github,
-                    portfolio: portfolio,
+                    fullName: cd.displayName ?? "",
+                    title: cd.subtitle ?? "",
+                    company: cd.org ?? "",
+                    bio: cd.bio ?? "",
+                    email: cd.email,
+                    website: cd.website,
+                    phone: cd.phone,
+                    pronouns: cd.pronouns ?? "",
+                    instagram: cd.instagram,
+                    linkedIn: cd.linkedin,
+                    github: cd.github,
+                    portfolio: cd.portfolio,
                     isReceived: false,
-                    isFavorite: isFavorite,
-                    note: note,
-                    tags: tags,
-                    folderId: folderId,
-                    eventName: eventName,
-                    intent: intent
+                    isFavorite: cd.isFavorite,
+                    note: cd.note ?? "",
+                    folderId: cd.folderId,
+                    eventName: cd.eventName,
+                    intent: cd.intent
                 )
             }
 
@@ -142,6 +101,29 @@ final class AppStore: ObservableObject {
         } catch {
             print("Failed to fetch cards: \(error)")
         }
+    }
+
+    /// Saves a received card (from peer transfer) into the inbox.
+    func importCard(_ payload: CardTransferPayload) {
+        let card = CardModel(
+            id: UUID(uuidString: payload.id) ?? UUID(),
+            type: CardType(rawValue: payload.type) ?? .personal,
+            theme: CardTheme(rawValue: payload.theme) ?? .sky,
+            fullName: payload.displayName,
+            title: payload.title,
+            company: payload.company,
+            bio: payload.bio,
+            email: payload.email,
+            website: payload.website,
+            phone: payload.phone,
+            pronouns: payload.pronouns,
+            instagram: payload.instagram,
+            linkedIn: payload.linkedIn,
+            github: payload.github,
+            portfolio: payload.portfolio,
+            isReceived: true
+        )
+        inboxCards.insert(card, at: 0)
     }
 }
 

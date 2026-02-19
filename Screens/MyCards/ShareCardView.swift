@@ -5,8 +5,9 @@ struct ShareCardView: View {
     @Environment(\.dismiss) var dismiss
     let card: CardModel
     
-    @State private var shareMode: ShareMode = .touch // .touch or .qr
+    @State private var shareMode: ShareMode = .touch
     @State private var isAnimating = false
+    @State private var showTouchMode = false
     
     enum ShareMode {
         case touch, qr
@@ -25,7 +26,6 @@ struct ShareCardView: View {
                     
                     Spacer()
                     
-                    // Segmented Control / Toggle
                     HStack(spacing: 0) {
                         toggleButton(title: "TOUCH", mode: .touch)
                         toggleButton(title: "QR", mode: .qr)
@@ -37,7 +37,7 @@ struct ShareCardView: View {
                     Spacer()
                     
                     Button {
-                        // Share via system sheet
+                        // System share sheet — future
                     } label: {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 18, weight: .medium))
@@ -49,19 +49,21 @@ struct ShareCardView: View {
 
                 Spacer()
                 
-                // Content
                 TabView(selection: $shareMode) {
-                    touchModeView
+                    touchPreviewView
                         .tag(ShareMode.touch)
                     
                     qrModeView
                         .tag(ShareMode.qr)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .frame(height: 500) // Adjust as needed
+                .frame(height: 500)
                 
                 Spacer()
             }
+        }
+        .fullScreenCover(isPresented: $showTouchMode) {
+            TouchModeView(card: card)
         }
     }
     
@@ -84,18 +86,18 @@ struct ShareCardView: View {
         }
     }
     
-    private var touchModeView: some View {
+    // Touch preview — tap to launch real transfer session
+    private var touchPreviewView: some View {
         VStack(spacing: 40) {
-            // Card Preview (Small)
             CardView(card: card)
-                .frame(width: 280) // Reduced size
+                .frame(width: 280)
                 .scaleEffect(0.8)
-            
+                .shadow(color: card.uiColor.opacity(0.5), radius: 24)
+
             ZStack {
-                // Ripples
                 ForEach(0..<3) { i in
                     Circle()
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        .stroke(card.uiColor.opacity(0.25), lineWidth: 1.5)
                         .frame(width: 100, height: 100)
                         .scaleEffect(isAnimating ? 3 : 1)
                         .opacity(isAnimating ? 0 : 1)
@@ -106,38 +108,44 @@ struct ShareCardView: View {
                             value: isAnimating
                         )
                 }
-                
-                // Icon
-                Image(systemName: "wave.3.right") // Or similar NFC icon
+                Image(systemName: "wave.3.right")
                     .font(.system(size: 40))
                     .foregroundColor(.white)
-                    .offset(x: -4) // Center optically
             }
-            .onAppear {
-                isAnimating = true
-            }
-            
+            .onAppear { isAnimating = true }
+
             VStack(spacing: 8) {
-                Text("Tap Devices")
+                Text("Tap to Start Transfer")
                     .font(.system(size: 22, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
-                
+
                 Text("HOLD TOP EDGES TOGETHER")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.white.opacity(0.35))
                     .tracking(1.4)
+            }
+
+            Button {
+                showTouchMode = true
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            } label: {
+                Label("Start Sending", systemImage: "antenna.radiowaves.left.and.right")
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 14)
+                    .background(Color.white)
+                    .clipShape(Capsule())
             }
         }
     }
     
     private var qrModeView: some View {
         VStack(spacing: 40) {
-             // Card Preview
              CardView(card: card)
                  .frame(width: 280)
                  .scaleEffect(0.8)
 
-             // QR Code Placeholder
              Image(systemName: "qrcode")
                  .resizable()
                  .aspectRatio(contentMode: .fit)

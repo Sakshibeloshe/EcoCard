@@ -12,15 +12,33 @@ public class CDCard: NSManagedObject {
     @NSManaged public var updatedAt: Date?
     @NSManaged public var themeHex: String?
     @NSManaged public var photoData: Data?
-    
+
     // Core fields
     @NSManaged public var displayName: String?
     @NSManaged public var subtitle: String?
     @NSManaged public var org: String?
     @NSManaged public var bio: String?
-    
+
+    // Flat contact/social fields
+    @NSManaged public var email: String?
+    @NSManaged public var phone: String?
+    @NSManaged public var website: String?
+    @NSManaged public var pronouns: String?
+    @NSManaged public var instagram: String?
+    @NSManaged public var linkedin: String?
+    @NSManaged public var github: String?
+    @NSManaged public var portfolio: String?
+
+    // Inbox / meta
+    @NSManaged public var isFavorite: Bool
+    @NSManaged public var folderId: UUID?
+    @NSManaged public var note: String?
+    @NSManaged public var eventName: String?
+    @NSManaged public var intent: String?
+
     @NSManaged public var fields: NSSet?
 }
+
 
 @objc(CDCardField)
 public class CDCardField: NSManagedObject {
@@ -157,10 +175,80 @@ extension NSManagedObjectModel {
         cardBio.name = "bio"
         cardBio.attributeType = .stringAttributeType
         
+        // contact/social
+        let cardEmail = NSAttributeDescription()
+        cardEmail.name = "email"
+        cardEmail.attributeType = .stringAttributeType
+        cardEmail.isOptional = true
+
+        let cardPhone = NSAttributeDescription()
+        cardPhone.name = "phone"
+        cardPhone.attributeType = .stringAttributeType
+        cardPhone.isOptional = true
+
+        let cardWebsite = NSAttributeDescription()
+        cardWebsite.name = "website"
+        cardWebsite.attributeType = .stringAttributeType
+        cardWebsite.isOptional = true
+
+        let cardPronouns = NSAttributeDescription()
+        cardPronouns.name = "pronouns"
+        cardPronouns.attributeType = .stringAttributeType
+        cardPronouns.isOptional = true
+
+        let cardInstagram = NSAttributeDescription()
+        cardInstagram.name = "instagram"
+        cardInstagram.attributeType = .stringAttributeType
+        cardInstagram.isOptional = true
+
+        let cardLinkedin = NSAttributeDescription()
+        cardLinkedin.name = "linkedin"
+        cardLinkedin.attributeType = .stringAttributeType
+        cardLinkedin.isOptional = true
+
+        let cardGithub = NSAttributeDescription()
+        cardGithub.name = "github"
+        cardGithub.attributeType = .stringAttributeType
+        cardGithub.isOptional = true
+
+        let cardPortfolio = NSAttributeDescription()
+        cardPortfolio.name = "portfolio"
+        cardPortfolio.attributeType = .stringAttributeType
+        cardPortfolio.isOptional = true
+
+        // inbox/meta
+        let cardIsFavorite = NSAttributeDescription()
+        cardIsFavorite.name = "isFavorite"
+        cardIsFavorite.attributeType = .booleanAttributeType
+        cardIsFavorite.defaultValue = false
+
+        let cardFolderId = NSAttributeDescription()
+        cardFolderId.name = "folderId"
+        cardFolderId.attributeType = .UUIDAttributeType
+        cardFolderId.isOptional = true
+
+        let cardNote = NSAttributeDescription()
+        cardNote.name = "note"
+        cardNote.attributeType = .stringAttributeType
+        cardNote.isOptional = true
+
+        let cardEventName = NSAttributeDescription()
+        cardEventName.name = "eventName"
+        cardEventName.attributeType = .stringAttributeType
+        cardEventName.isOptional = true
+
+        let cardIntent = NSAttributeDescription()
+        cardIntent.name = "intent"
+        cardIntent.attributeType = .stringAttributeType
+        cardIntent.isOptional = true
+
         cardEntity.properties = [
             cardId, cardTypeRaw, cardCreatedAt, cardUpdatedAt,
             cardThemeHex, cardPhotoData, cardDisplayName,
-            cardSubtitle, cardOrg, cardBio
+            cardSubtitle, cardOrg, cardBio,
+            cardEmail, cardPhone, cardWebsite, cardPronouns,
+            cardInstagram, cardLinkedin, cardGithub, cardPortfolio,
+            cardIsFavorite, cardFolderId, cardNote, cardEventName, cardIntent
         ]
         
         // CDCardField Entity
