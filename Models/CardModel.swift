@@ -14,15 +14,24 @@ struct CardModel: Identifiable, Hashable, Codable {
     var email: String?
     var website: String?
     var phone: String?
-    var pronouns: String
+    var pronouns: String?
     var photo: String? // Optional photo URL or base64
     
-    // Socials (Optionals)
+    // Additional fields for themes
+    var locationCity: String?
+    var officeLocation: String?
+    var linkedin: String?
     var instagram: String?
-    var linkedIn: String?
     var github: String?
     var portfolio: String?
-
+    var snapchat: String?
+    var spotify: String?
+    var whatsapp: String?
+    var eventBadge: String?
+    var skillsTags: String?
+    var emojiTags: String?
+    var nickname: String?
+    
     // Inbox features
     var isReceived: Bool
     var isFavorite: Bool
@@ -30,7 +39,7 @@ struct CardModel: Identifiable, Hashable, Codable {
     var tags: [String]
     var folderId: UUID?
     var eventName: String?
-    var intent: String? // New field
+    var intent: String?
 
     init(
         id: UUID = UUID(),
@@ -43,19 +52,28 @@ struct CardModel: Identifiable, Hashable, Codable {
         email: String? = nil,
         website: String? = nil,
         phone: String? = nil,
-        pronouns: String = "",
+        pronouns: String? = nil,
+        photo: String? = nil,
+        locationCity: String? = nil,
+        officeLocation: String? = nil,
+        linkedin: String? = nil,
         instagram: String? = nil,
-        linkedIn: String? = nil,
         github: String? = nil,
         portfolio: String? = nil,
+        snapchat: String? = nil,
+        spotify: String? = nil,
+        whatsapp: String? = nil,
+        eventBadge: String? = nil,
+        skillsTags: String? = nil,
+        emojiTags: String? = nil,
+        nickname: String? = nil,
         isReceived: Bool = false,
         isFavorite: Bool = false,
         note: String = "",
         tags: [String] = [],
         folderId: UUID? = nil,
         eventName: String? = nil,
-        intent: String? = nil,
-        photo: String? = nil
+        intent: String? = nil
     ) {
         self.id = id
         self.type = type
@@ -68,10 +86,20 @@ struct CardModel: Identifiable, Hashable, Codable {
         self.website = website
         self.phone = phone
         self.pronouns = pronouns
+        self.photo = photo
+        self.locationCity = locationCity
+        self.officeLocation = officeLocation
+        self.linkedin = linkedin
         self.instagram = instagram
-        self.linkedIn = linkedIn
         self.github = github
         self.portfolio = portfolio
+        self.snapchat = snapchat
+        self.spotify = spotify
+        self.whatsapp = whatsapp
+        self.eventBadge = eventBadge
+        self.skillsTags = skillsTags
+        self.emojiTags = emojiTags
+        self.nickname = nickname
         self.isReceived = isReceived
         self.isFavorite = isFavorite
         self.note = note
@@ -79,7 +107,6 @@ struct CardModel: Identifiable, Hashable, Codable {
         self.folderId = folderId
         self.eventName = eventName
         self.intent = intent
-        self.photo = photo
     }
     
     // MARK: - Computed Properties
@@ -89,8 +116,8 @@ struct CardModel: Identifiable, Hashable, Codable {
     }
     
     var org: String? {
-        if !company.isEmpty { return company }
         if let event = eventName, !event.isEmpty { return event }
+        if !company.isEmpty { return company }
         return nil
     }
     
@@ -115,8 +142,8 @@ extension CardModel {
         if let website, !website.isEmpty {
             actions.append(CardAction(type: .website, label: "Website", value: website, systemIcon: "safari.fill"))
         }
-        if let linkedIn, !linkedIn.isEmpty {
-            actions.append(CardAction(type: .linkedIn, label: "LinkedIn", value: linkedIn, systemIcon: "link"))
+        if let linkedin, !linkedin.isEmpty {
+            actions.append(CardAction(type: .linkedIn, label: "LinkedIn", value: linkedin, systemIcon: "link"))
         }
         if let instagram, !instagram.isEmpty {
             actions.append(CardAction(type: .instagram, label: "Instagram", value: instagram, systemIcon: "camera.fill"))
@@ -125,7 +152,16 @@ extension CardModel {
             actions.append(CardAction(type: .github, label: "GitHub", value: github, systemIcon: "chevron.left.slash.chevron.right"))
         }
         if let portfolio, !portfolio.isEmpty {
-            actions.append(CardAction(type: .portfolio, label: "Portfolio", value: portfolio, systemIcon: "sparkles"))
+            actions.append(CardAction(type: .website, label: "Portfolio", value: portfolio, systemIcon: "sparkles"))
+        }
+        if let whatsapp, !whatsapp.isEmpty {
+            actions.append(CardAction(type: .whatsapp, label: "WhatsApp", value: whatsapp, systemIcon: "phone.bubble.left.fill"))
+        }
+        if let snapchat, !snapchat.isEmpty {
+            actions.append(CardAction(type: .snapchat, label: "Snapchat", value: snapchat, systemIcon: "bell.fill"))
+        }
+        if let spotify, !spotify.isEmpty {
+            actions.append(CardAction(type: .spotify, label: "Spotify", value: spotify, systemIcon: "music.note"))
         }
 
         return actions
@@ -133,31 +169,39 @@ extension CardModel {
 
     /// Decide what goes on the front card.
     func primaryAction() -> CardAction? {
+        let actions = availableActions()
         switch type {
         case .personal:
-            // Most personal cards want phone/message
-            return availableActions().first(where: { $0.type == .phone })
-                ?? availableActions().first(where: { $0.type == .email })
+            // Instagram > WhatsApp > Phone
+            return actions.first(where: { $0.type == .instagram })
+                ?? actions.first(where: { $0.type == .whatsapp })
+                ?? actions.first(where: { $0.type == .phone })
+                ?? actions.first
 
         case .business:
-            // Business = LinkedIn > Email > Website
-            return availableActions().first(where: { $0.type == .linkedIn })
-                ?? availableActions().first(where: { $0.type == .email })
-                ?? availableActions().first(where: { $0.type == .website })
+            // LinkedIn > Email > Website
+            return actions.first(where: { $0.type == .linkedIn })
+                ?? actions.first(where: { $0.type == .email })
+                ?? actions.first(where: { $0.type == .website })
+                ?? actions.first
 
         case .social:
-            // Social = Instagram > Website
-            return availableActions().first(where: { $0.type == .instagram })
-                ?? availableActions().first(where: { $0.type == .website })
+            // Instagram > Snapchat > Spotify
+            return actions.first(where: { $0.type == .instagram })
+                ?? actions.first(where: { $0.type == .snapchat })
+                ?? actions.first(where: { $0.type == .spotify })
+                ?? actions.first
 
         case .event:
-            // Event = Email > LinkedIn
-            return availableActions().first(where: { $0.type == .email })
-                ?? availableActions().first(where: { $0.type == .linkedIn })
+            // LinkedIn > GitHub > Email
+            return actions.first(where: { $0.type == .linkedIn })
+                ?? actions.first(where: { $0.type == .github })
+                ?? actions.first(where: { $0.type == .email })
+                ?? actions.first
 
         case .blank:
             // Custom = first available
-            return availableActions().first
+            return actions.first
         }
     }
 
@@ -167,3 +211,4 @@ extension CardModel {
         return actions.first(where: { $0.type != primary.type })
     }
 }
+

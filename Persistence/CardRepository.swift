@@ -21,7 +21,9 @@ final class CardRepository {
         card.type = type
         card.createdAt = Date()
         card.updatedAt = Date()
-        card.themeHex = theme.rawValue // Store theme
+        card.themeHex = theme.rawValue
+        card.isReceived = false
+        card.isFavorite = false
 
         // Photo
         if let photo {
@@ -29,10 +31,8 @@ final class CardRepository {
         }
 
         // Core fields mapping
-        // Logic: prioritize explicit keys if present, otherwise fallback
-        card.displayName = values["fullName"] ?? values["displayName"] ?? values["title"] ?? "Untitled"
-
-        card.subtitle = values["title"] ?? values["roleAtEvent"] ?? values["description"]
+        card.displayName = values["fullName"] ?? values["nickname"] ?? values["displayName"] ?? values["title"] ?? "Untitled"
+        card.subtitle = values["title"] ?? values["eventBadge"] ?? values["roleAtEvent"] ?? values["description"]
         card.org = values["company"] ?? values["eventName"]
         card.bio = values["bio"]
 
@@ -43,14 +43,7 @@ final class CardRepository {
             let v = values[def.key, default: ""].trimmingCharacters(in: .whitespacesAndNewlines)
             if v.isEmpty { continue }
 
-            // Skip core fields already stored above to avoid duplication in 'fields' relationship if we only want dynamic ones there.
-            // However, the prompt implies "Save all other fields dynamically".
-            // Let's exclude the ones we mapped to CDCard properties directly to keep it clean, OR store everything in CDCardField as well?
-            // The prompt said:
-            // // Skip core fields already stored above
-            // if ["fullName","displayName","title","company","eventName","bio"].contains(def.key) { continue }
-            
-            if ["fullName", "displayName", "title", "company", "eventName", "bio", "roleAtEvent"].contains(def.key) {
+            if ["fullName", "nickname", "displayName", "title", "company", "eventBadge", "eventName", "bio", "roleAtEvent"].contains(def.key) {
                 continue
             }
 

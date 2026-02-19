@@ -54,7 +54,7 @@ struct CardDetailView: View {
                 // Social / Work section
                 detailSection(title: "Links") {
                     VStack(spacing: 10) {
-                        if let linkedIn = card.linkedIn, !linkedIn.isEmpty {
+                        if let linkedIn = card.linkedin, !linkedIn.isEmpty {
                             linkRow("LinkedIn", linkedIn, icon: "link")
                         }
                         if let github = card.github, !github.isEmpty {
@@ -223,3 +223,4 @@ struct CardDetailView: View {
         .buttonStyle(.plain)
     }
 }
+

@@ -11,7 +11,7 @@ struct CardEditorView: View {
     @StateObject private var profile = ProfileStore.shared
 
     // Intent picker
-    @State private var selectedIntent: String = FieldCatalog.intents.first ?? ""
+    @State private var selectedIntent: String = ""
 
     // Photo
     @State private var pickedImage: UIImage?
@@ -41,16 +41,18 @@ struct CardEditorView: View {
         initialValues["phone"] = profile.phone
         initialValues["pronouns"] = profile.pronouns
         
-        // Socials mapping
+        // Socials & New Fields
         initialValues["instagram"] = profile.instagram
         initialValues["linkedin"] = profile.linkedIn
         initialValues["github"] = profile.github
         initialValues["portfolio"] = profile.portfolio
         
-        // Specific field catalog keys
+        // Map any other available profile info to keys used in FieldCatalog
+        initialValues["nickname"] = profile.fullName
         initialValues["displayName"] = profile.fullName
         
         _values = State(initialValue: initialValues)
+        _selectedIntent = State(initialValue: FieldCatalog.intents(for: type).first ?? "")
     }
 
     var body: some View {
@@ -80,6 +82,7 @@ struct CardEditorView: View {
                         ForEach(FieldCatalog.fields(for: type)) { field in
                             FieldRowView(
                                 field: field,
+                                type: type,
                                 value: Binding(
                                     get: { values[field.key, default: ""] },
                                     set: { values[field.key] = $0 }
@@ -126,18 +129,26 @@ struct CardEditorView: View {
         CardModel(
             type: type,
             theme: selectedTheme,
-            fullName: values["fullName"] ?? "Your Name",
+            fullName: values["fullName"] ?? values["nickname"] ?? "Your Name",
             title: values["title"] ?? "",
-            company: values["company"] ?? "",
+            company: values["company"] ?? values["eventBadge"] ?? "",
             bio: values["bio"] ?? "",
             email: values["email"],
             website: values["website"],
             phone: values["phone"],
-            pronouns: values["pronouns"] ?? "",
+            pronouns: values["pronouns"],
+            locationCity: values["locationCity"],
+            officeLocation: values["officeLocation"],
+            linkedin: values["linkedin"],
             instagram: values["instagram"],
-            linkedIn: values["linkedin"],
             github: values["github"],
-            portfolio: values["portfolio"],
+            snapchat: values["snapchat"],
+            spotify: values["spotify"],
+            whatsapp: values["whatsapp"],
+            eventBadge: values["eventBadge"],
+            skillsTags: values["skillsTags"],
+            emojiTags: values["emojiTags"],
+            nickname: values["nickname"],
             intent: selectedIntent.isEmpty ? nil : selectedIntent
         )
     }

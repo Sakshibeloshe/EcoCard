@@ -29,7 +29,7 @@ enum DummyData {
                 email: "emily@linear.studio",
                 website: "linear.studio",
                 pronouns: "SHE/HER",
-                linkedIn: "linkedin.com/in/emilyparker"
+                linkedin: "linkedin.com/in/emilyparker"
             ),
 
             CardModel(

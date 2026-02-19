@@ -9,6 +9,9 @@ enum CardActionType: String, Codable {
     case github
     case portfolio
     case message
+    case whatsapp
+    case snapchat
+    case spotify
 }
 
 struct CardAction: Identifiable {
@@ -35,6 +38,12 @@ struct CardAction: Identifiable {
             return URL(string: value.hasPrefix("http") ? value : "https://github.com/\(value)")
         case .message:
             return nil
+        case .whatsapp:
+            return URL(string: "https://wa.me/\(value)")
+        case .snapchat:
+            return URL(string: "https://snapchat.com/add/\(value)")
+        case .spotify:
+            return URL(string: value.hasPrefix("http") ? value : "https://open.spotify.com/\(value)")
         }
     }
 }

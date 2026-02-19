@@ -19,6 +19,13 @@ public class CDCard: NSManagedObject {
     @NSManaged public var org: String?
     @NSManaged public var bio: String?
     
+    // Inbox & State fields
+    @NSManaged public var isFavorite: Bool
+    @NSManaged public var isReceived: Bool
+    @NSManaged public var folderId: UUID?
+    @NSManaged public var note: String?
+    @NSManaged public var tagsRaw: String? // Comma-separated tags
+    
     @NSManaged public var fields: NSSet?
 }
 
@@ -55,6 +62,11 @@ extension CDCard {
     var type: CardType {
         get { CardType(rawValue: typeRaw ?? "") ?? .personal }
         set { typeRaw = newValue.rawValue }
+    }
+    
+    var tags: [String] {
+        get { tagsRaw?.components(separatedBy: ",").filter { !$0.isEmpty } ?? [] }
+        set { tagsRaw = newValue.joined(separator: ",") }
     }
 }
 
@@ -95,11 +107,26 @@ extension CDCard {
             website: fieldMap["website"],
             phone: fieldMap["phone"],
             pronouns: fieldMap["pronouns"] ?? "",
+            photo: self.photoData != nil ? "data:image/jpeg;base64," + self.photoData!.base64EncodedString() : nil,
+            locationCity: fieldMap["locationCity"],
+            officeLocation: fieldMap["officeLocation"],
+            linkedin: fieldMap["linkedin"],
             instagram: fieldMap["instagram"],
-            linkedIn: fieldMap["linkedin"],
             github: fieldMap["github"],
             portfolio: fieldMap["portfolio"],
-            isReceived: false, // assuming created cards are "my cards"
+            snapchat: fieldMap["snapchat"],
+            spotify: fieldMap["spotify"],
+            whatsapp: fieldMap["whatsapp"],
+            eventBadge: fieldMap["eventBadge"],
+            skillsTags: fieldMap["skillsTags"],
+            emojiTags: fieldMap["emojiTags"],
+            nickname: fieldMap["nickname"],
+            isReceived: self.isReceived,
+            isFavorite: self.isFavorite,
+            note: self.note ?? "",
+            tags: self.tags,
+            folderId: self.folderId,
+            eventName: self.org, // org stores eventName for event cards
             intent: fieldMap["intent"]
         )
     }
@@ -157,10 +184,33 @@ extension NSManagedObjectModel {
         cardBio.name = "bio"
         cardBio.attributeType = .stringAttributeType
         
+        let cardIsFavorite = NSAttributeDescription()
+        cardIsFavorite.name = "isFavorite"
+        cardIsFavorite.attributeType = .booleanAttributeType
+        cardIsFavorite.defaultValue = false
+        
+        let cardIsReceived = NSAttributeDescription()
+        cardIsReceived.name = "isReceived"
+        cardIsReceived.attributeType = .booleanAttributeType
+        cardIsReceived.defaultValue = false
+        
+        let cardFolderId = NSAttributeDescription()
+        cardFolderId.name = "folderId"
+        cardFolderId.attributeType = .UUIDAttributeType
+        
+        let cardNote = NSAttributeDescription()
+        cardNote.name = "note"
+        cardNote.attributeType = .stringAttributeType
+        
+        let cardTagsRaw = NSAttributeDescription()
+        cardTagsRaw.name = "tagsRaw"
+        cardTagsRaw.attributeType = .stringAttributeType
+        
         cardEntity.properties = [
             cardId, cardTypeRaw, cardCreatedAt, cardUpdatedAt,
             cardThemeHex, cardPhotoData, cardDisplayName,
-            cardSubtitle, cardOrg, cardBio
+            cardSubtitle, cardOrg, cardBio, 
+            cardIsFavorite, cardIsReceived, cardFolderId, cardNote, cardTagsRaw
         ]
         
         // CDCardField Entity

@@ -3,6 +3,7 @@ import SwiftUI
 struct FieldRowView: View {
 
     let field: FieldDefinition
+    let type: CardType
     @Binding var value: String
 
     @Binding var selectedIntent: String
@@ -29,7 +30,7 @@ struct FieldRowView: View {
 
             case .picker:
                 Menu {
-                    ForEach(FieldCatalog.intents, id: \.self) { intent in
+                    ForEach(FieldCatalog.intents(for: type), id: \.self) { intent in
                         Button(intent) {
                             selectedIntent = intent
                             value = intent

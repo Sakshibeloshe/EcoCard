@@ -5,7 +5,7 @@ struct CardFrontView: View {
     
     var body: some View {
         ZStack {
-            PremiumCardPattern(backgroundColor: backgroundColor)
+            PremiumCardPattern(backgroundColor: card.theme.color)
                 .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
                 .shadow(color: .black.opacity(0.15), radius: 18, x: 0, y: 10)
 
@@ -14,11 +14,20 @@ struct CardFrontView: View {
                 // Top row: Name + type icon
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(card.fullName)
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundStyle(Color.charcoalGrey)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(card.fullName)
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .foregroundStyle(Color.charcoalGrey)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                            
+                            if let pronouns = card.pronouns, !pronouns.isEmpty {
+                                Text(pronouns.uppercased())
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundStyle(Color.charcoalGrey.opacity(0.4))
+                                    .tracking(0.5)
+                            }
+                        }
 
                         Text(frontSubtitle)
                             .font(.system(size: 18, weight: .medium, design: .rounded))
@@ -29,14 +38,26 @@ struct CardFrontView: View {
                     Spacer()
 
                     Image(systemName: card.type.icon)
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(Color.charcoalGrey.opacity(0.6))
-                        .frame(width: 48, height: 48)
-                        .background(Color.charcoalGrey.opacity(0.1))
+                        .frame(width: 44, height: 44)
+                        .background(Color.charcoalGrey.opacity(0.08))
                         .clipShape(Circle())
                 }
 
                 Spacer(minLength: 0)
+
+                // Middle Section: Intent
+                if let intent = card.intent, !intent.isEmpty {
+                    Text(intent.uppercased())
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color.charcoalGrey.opacity(0.8))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.charcoalGrey.opacity(0.05))
+                        .clipShape(Capsule())
+                        .padding(.bottom, 4)
+                }
 
                 // Bottom: primary + secondary action row
                 CardActionRow(
@@ -45,31 +66,41 @@ struct CardFrontView: View {
                 )
             }
             .padding(32) // Inner Padding: 32pt
+
+            // Type Tag (Center Bottom)
+            VStack {
+                Spacer()
+                Text(card.type.displayName.uppercased())
+                    .font(.system(size: 10, weight: .black))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.black)
+                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 10, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 10, style: .continuous))
+            }
             
             // Border Width: 2pt
-            RoundedRectangle(cornerRadius: 40, style: .continuous)
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
                 .stroke(Color.black.opacity(0.1), lineWidth: 2)
         }
-        .aspectRatio(1.5, contentMode: .fit) // Height: Calculated as Width / 1.5
-        .clipShape(RoundedRectangle(cornerRadius: 40, style: .continuous)) // Corner Radius: 40pt
-        .padding(.horizontal, 20) // Width: Full Width minus 40px padding (20 each side)
+        .aspectRatio(1.5, contentMode: .fit) 
+        .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+        .padding(.horizontal, 20)
     }
     
-    private var backgroundColor: Color {
-        if card.isReceived { return .skyBlue }
-        switch card.type {
-        case .personal: return .softRose
-        case .business: return .freshLime
-        case .social: return .skyBlue
-        case .event: return .lavenderPurple
-        case .blank: return .softTerracotta
-        }
-    }
-
+    // backgroundColor removed as we use card.theme.color directly
+    
     private var frontSubtitle: String {
         // Role + org in one line
         let role = card.subtitle ?? ""
-        let org = card.org ?? ""
+        var org = card.org ?? ""
+        
+        // Specific mapping for types
+        if card.type == .personal {
+            org = card.locationCity ?? ""
+        } else if card.type == .social {
+            org = card.emojiTags ?? ""
+        }
 
         if !role.isEmpty && !org.isEmpty {
             return "\(role) • \(org)"
@@ -78,7 +109,7 @@ struct CardFrontView: View {
         } else if !org.isEmpty {
             return org
         } else {
-            return card.type.displayName
+            return ""
         }
     }
 }
