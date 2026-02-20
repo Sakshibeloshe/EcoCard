@@ -12,9 +12,9 @@ struct ReceiverModeButton: View {
                 .font(.system(size: 10, weight: .black, design: .default))
                 .tracking(1)
         }
-        .foregroundColor(isLive ? .black : .white.opacity(0.6))
-        .padding(.horizontal, 16)
-        .frame(height: 40)
+        .foregroundColor(isLive ? .black : .white.opacity(0.8))
+        .padding(.horizontal, 20)
+        .frame(height: 44)
         .background(
             ZStack {
                 if isLive {
@@ -23,15 +23,11 @@ struct ReceiverModeButton: View {
                         .shadow(color: Color.skyBlue.opacity(0.8), radius: 10)
                 } else {
                     Capsule()
-                        .fill(Color.white.opacity(0.05))
+                        .fill(Color.white.opacity(0.06))
                         .overlay(
                             Capsule()
-                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                .stroke(Color.white.opacity(0.12), lineWidth: 1)
                         )
-
-//                    Capsule()
-//                        .fill(Color.white.opacity(0.05))
-//                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
                 }
             }
         )

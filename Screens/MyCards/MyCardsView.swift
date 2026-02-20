@@ -44,11 +44,17 @@ struct MyCardsView: View {
                 TopNavBar()
                     .padding(.horizontal, 16)
                 
-                Text("My Stack")
-                    .font(.system(size: 54, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("My Stack")
+                        .font(.system(size: 34, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.white)
+                    
+                    Text("Your digital identity")
+                        .font(.system(size: 18, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.35))
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
 
                 SearchBar(text: $search, placeholder: "Search cards")
 

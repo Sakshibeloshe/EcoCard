@@ -100,6 +100,7 @@ extension CDCard {
             type: self.type,
             theme: theme,
             fullName: self.displayName ?? "",
+            createdAt: self.createdAt ?? Date(),
             title: self.subtitle ?? "",
             company: self.org ?? "",
             bio: self.bio ?? "",
@@ -128,6 +129,7 @@ extension CDCard {
             folderId: self.folderId,
             eventName: self.org, // org stores eventName for event cards
             intent: fieldMap["intent"]
+            
         )
     }
 }

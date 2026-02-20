@@ -78,7 +78,7 @@ struct CardEditorView: View {
                     }
 
                     // Form Fields
-                    VStack(spacing: 14) {
+                    VStack(spacing: 0) {
                         ForEach(FieldCatalog.fields(for: type)) { field in
                             FieldRowView(
                                 field: field,
@@ -89,20 +89,33 @@ struct CardEditorView: View {
                                 ),
                                 selectedIntent: $selectedIntent
                             )
+                            
+                            if field.key != FieldCatalog.fields(for: type).last?.key {
+                                Divider()
+                                    .background(Color.white.opacity(0.1))
+                                    .padding(.horizontal, 16)
+                            }
                         }
                     }
+                    .background(Color.charcoalGrey.opacity(0.6))
+                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
 
                     // Preview Button
                     Button {
                         showPreview = true
                     } label: {
-                        Text("PREVIEW CARD")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(.white)
+                        Text("CONTINUE TO PREVIEW")
+                            .font(.system(size: 14, weight: .black))
+                            .foregroundStyle(.black)
+                            .tracking(2)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
-                            .background(Color.white.opacity(0.15))
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .padding(.vertical, 22)
+                            .background(Color.white)
+                            .clipShape(Capsule())
                     }
                     .padding(.top, 10)
 

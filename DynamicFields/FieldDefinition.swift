@@ -2,7 +2,7 @@ import Foundation
 import UIKit
 
 struct FieldDefinition: Identifiable, Hashable {
-    let id = UUID()
+    var id: String { key }
 
     let key: String              // "linkedin"
     let label: String            // "LinkedIn"

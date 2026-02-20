@@ -13,10 +13,11 @@ struct FloatingTabBar: View {
         VStack {
             Spacer()
 
-            HStack(spacing: 24) {
+            HStack(spacing: 12) {
                 // My Cards Tab
                 TabButton(
                     icon: "rectangle.fill",
+                    label: "My Cards",
                     isSelected: selectedTab == .myCards,
                     activeColor: .freshLime
                 ) {
@@ -27,6 +28,7 @@ struct FloatingTabBar: View {
                 // Add Card Tab
                 TabButton(
                     icon: "plus",
+                    label: "Add Card",
                     isSelected: selectedTab == .add,
                     activeColor: .softRose
                 ) {
@@ -37,6 +39,7 @@ struct FloatingTabBar: View {
                 // Inbox Tab
                 TabButton(
                     icon: "person.2.fill",
+                    label: "Inbox",
                     isSelected: selectedTab == .inbox,
                     activeColor: .skyBlue
                 ) {
@@ -44,7 +47,7 @@ struct FloatingTabBar: View {
                     UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                 }
             }
-            .padding(.horizontal, 10)
+            .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .background(.ultraThinMaterial)
             .background(Color.charcoalGrey.opacity(0.8))
@@ -61,19 +64,25 @@ struct FloatingTabBar: View {
 
 struct TabButton: View {
     let icon: String
+    let label: String
     let isSelected: Bool
     let activeColor: Color
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(isSelected ? Color.charcoalGrey : Color.white.opacity(0.4))
-                .frame(width: 54, height: 54)
-                .background(isSelected ? activeColor : Color.clear)
-                .clipShape(Circle())
-                .accessibilityLabel(Text(isSelected ? "Selected tab" : "Tab"))
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .bold))
+                
+                Text(label)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+            }
+            .foregroundColor(isSelected ? Color.charcoalGrey : Color.white.opacity(0.4))
+            .frame(width: 80, height: 58)
+            .background(isSelected ? activeColor : Color.clear)
+            .clipShape(Capsule())
+            .accessibilityLabel(Text(isSelected ? "Selected \(label) tab" : "\(label) tab"))
         }
     }
 }

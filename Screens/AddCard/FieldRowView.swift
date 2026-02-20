@@ -9,22 +9,22 @@ struct FieldRowView: View {
     @Binding var selectedIntent: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
 
             HStack(spacing: 8) {
-                Text(field.label)
-                    .font(.system(size: 14, weight: .semibold))
+                Text(field.label.uppercased() + (field.kind == .picker ? " CHIP" : ""))
+                    .font(.system(size: 10, weight: .black))
+                    .foregroundStyle(.white.opacity(0.4))
+                    .tracking(1.5)
 
                 if field.required {
-                    Text("Required")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
+                    Circle()
+                        .fill(Color.freshLime)
+                        .frame(width: 4, height: 4)
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
 
             switch field.kind {
 
@@ -39,25 +39,27 @@ struct FieldRowView: View {
                 } label: {
                     HStack {
                         Text(value.isEmpty ? "Choose an intent" : value)
-                            .foregroundStyle(value.isEmpty ? .secondary : .primary)
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .foregroundStyle(value.isEmpty ? .white.opacity(0.3) : .white)
 
                         Spacer()
 
                         Image(systemName: "chevron.down")
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.3))
                     }
-                    .padding(14)
-                    .background(.thinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 14)
                 }
 
             default:
                 TextField(field.placeholder, text: $value)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
                     .textInputAutocapitalization(.never)
                     .keyboardType(keyboardType(for: field.keyboard))
-                    .padding(14)
-                    .background(.thinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 14)
             }
         }
     }

@@ -7,8 +7,8 @@ struct TopNavBar: View {
     @State private var showEventSheet = false
 
     var body: some View {
-        VStack(spacing: 12) {
-            HStack(alignment: .center, spacing: 12) {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
                 // Receiver Mode Button (Primary)
                 Button {
                     eventManager.toggleReceiver()
@@ -37,15 +37,21 @@ struct TopNavBar: View {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
                     Image(systemName: "gearshape.fill")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.white.opacity(0.8))
-                        .frame(width: 40, height: 40)
+                        .frame(width: 44, height: 44)
                         .background(
                             Circle()
-                                .fill(Color.white.opacity(0.05))
+                                .fill(Color.white.opacity(0.06))
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                )
                         )
                 }
             }
+            .padding(.top, 4)
+            .padding(.bottom, 12)
             // Banner section
             if eventManager.isReceiverActive {
                 HStack(spacing: 12) {

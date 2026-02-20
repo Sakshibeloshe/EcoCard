@@ -12,9 +12,9 @@ struct EventModeButton: View {
                 .font(.system(size: 10, weight: .black, design: .default))
                 .tracking(1)
         }
-        .foregroundColor(isLive ? .black : .white.opacity(0.6))
-        .padding(.horizontal, 12)
-        .frame(height: 32)
+        .foregroundColor(isLive ? .black : .white.opacity(0.8))
+        .padding(.horizontal, 20)
+        .frame(height: 44)
         .background(
             ZStack {
                 if isLive {
@@ -23,15 +23,11 @@ struct EventModeButton: View {
                         .shadow(color: Color.softRose.opacity(0.8), radius: 8)
                 } else {
                     Capsule()
-                        .fill(Color.white.opacity(0.05))
+                        .fill(Color.white.opacity(0.06))
                         .overlay(
                             Capsule()
-                                .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+                                .stroke(Color.white.opacity(0.12), lineWidth: 1)
                         )
-
-//                    Capsule()
-//                        .fill(Color.white.opacity(0.05))
-//                        .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
                 }
             }
         )

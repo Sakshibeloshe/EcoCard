@@ -72,7 +72,7 @@ struct CardFrontView: View {
                 Spacer()
                 Text(card.type.displayName.uppercased())
                     .font(.system(size: 10, weight: .black))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .background(Color.black)

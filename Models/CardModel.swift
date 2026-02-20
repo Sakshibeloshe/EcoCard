@@ -40,12 +40,14 @@ struct CardModel: Identifiable, Hashable, Codable {
     var folderId: UUID?
     var eventName: String?
     var intent: String?
+    var createdAt: Date
 
     init(
         id: UUID = UUID(),
         type: CardType,
         theme: CardTheme,
         fullName: String,
+        createdAt: Date = Date(),
         title: String = "",
         company: String = "",
         bio: String = "",
@@ -107,6 +109,7 @@ struct CardModel: Identifiable, Hashable, Codable {
         self.folderId = folderId
         self.eventName = eventName
         self.intent = intent
+        self.createdAt = createdAt
     }
     
     // MARK: - Computed Properties

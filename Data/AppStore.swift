@@ -16,9 +16,7 @@ final class AppStore: ObservableObject {
 
     init() {
         folders = DummyData.folders
-        let all = DummyData.cards(folders: folders)
-        myCards = all.filter { !$0.isReceived }
-        inboxCards = all.filter { $0.isReceived }
+        // We'll rely on fetchMyCards to populate cards from DB
     }
 
     func addMyCard(_ card: CardModel) {
@@ -29,6 +27,24 @@ final class AppStore: ObservableObject {
         if let i = inboxCards.firstIndex(where: {$0.id == card.id}) {
             inboxCards[i].isFavorite.toggle()
         }
+    }
+
+    func deleteCard(_ card: CardModel) {
+        let context = PersistenceController.shared.container.viewContext
+        let request = NSFetchRequest<CDCard>(entityName: "CDCard")
+        request.predicate = NSPredicate(format: "id == %@", card.id as CVarArg)
+        
+        do {
+            if let result = try context.fetch(request).first {
+                context.delete(result)
+                try context.save()
+            }
+        } catch {
+            print("Failed to delete card: \(error)")
+        }
+        
+        myCards.removeAll { $0.id == card.id }
+        inboxCards.removeAll { $0.id == card.id }
     }
 
     func assignFolder(cardId: UUID, folderId: UUID?) {
@@ -60,27 +76,25 @@ final class AppStore: ObservableObject {
     
     func fetchMyCards() {
         let context = PersistenceController.shared.container.viewContext
-        // Build a typed fetch request explicitly using the entity name to avoid generic mismatch
         let request = NSFetchRequest<CDCard>(entityName: "CDCard")
-        // Sort by createdAt descending
         request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
         
         do {
             let results = try context.fetch(request)
             let allModels = results.map { $0.toModel() }
             
-            // Separate into types
             let dbMyCards = allModels.filter { !$0.isReceived }
             let dbInboxCards = allModels.filter { $0.isReceived }
             
-            // Filter out dummy data that might be duplicates if needed, 
-            // but for now let's just combine with existing dummy data logic if intended
-            let dummy = DummyData.cards(folders: folders)
-            let dummyMyCards = dummy.filter { !$0.isReceived }
-            let dummyInboxCards = dummy.filter { $0.isReceived }
-            
-            self.myCards = dbMyCards + dummyMyCards
-            self.inboxCards = dbInboxCards + dummyInboxCards
+            // ONLY use dummy data if we have NOTHING in the DB
+            if allModels.isEmpty {
+                let dummy = DummyData.cards(folders: folders)
+                self.myCards = dummy.filter { !$0.isReceived }
+                self.inboxCards = dummy.filter { $0.isReceived }
+            } else {
+                self.myCards = dbMyCards
+                self.inboxCards = dbInboxCards
+            }
         } catch {
             print("Failed to fetch cards: \(error)")
         }
