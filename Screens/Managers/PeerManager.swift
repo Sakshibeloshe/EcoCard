@@ -1,70 +1,60 @@
 import Foundation
 import MultipeerConnectivity
 import Combine
+import UIKit
 
-/// Manages near‑field card transfer using MultipeerConnectivity.
-///
-/// **Receiver flow**: call `startHosting()` → the device advertises itself.
-/// **Sender flow**: call `startBrowsing()` → the manager auto‑invites
-/// any nearby advertiser and, once connected, calls the `onConnected`
-/// closure so the caller can send. Call `sendCard(_:)` at any time
-/// once `isConnected` is true.
 @MainActor
 final class PeerManager: NSObject, ObservableObject {
 
-    // MARK: - Published state
+    // MARK: - Published UI State (must update on MainActor)
 
-    /// `true` when at least one peer is connected.
     @Published var isConnected: Bool = false
-
-    /// Set to the last card received via MultipeerConnectivity.
-    /// Observe this in the UI to auto‑save / show an alert.
     @Published var receivedCard: CardModel? = nil
-
-    /// Friendly status string for display in the UI.
     @Published var statusLabel: String = "Idle"
 
-    // MARK: - Private MC objects
+    // MARK: - Multipeer Properties
 
     private let serviceType = "ecocard-p2p"
 
-    // Each instance gets a fresh random peer ID so the user can run
-    // multiple sessions without collisions.
-    private let myPeerID = MCPeerID(displayName: UIDevice.current.name)
+    nonisolated private let myPeerID: MCPeerID
+    nonisolated private let session: MCSession
 
-    private var session: MCSession!
     private var advertiser: MCNearbyServiceAdvertiser?
     private var browser: MCNearbyServiceBrowser?
 
-    /// `true` while this device is actively advertising (receiver).
     private(set) var isHosting = false
-
-    /// `true` while this device is actively browsing (sender).
     private(set) var isBrowsing = false
 
     // MARK: - Init
 
     override init() {
-        super.init()
-        session = MCSession(
-            peer: myPeerID,
+        let deviceName = UIDevice.current.name
+        self.myPeerID = MCPeerID(displayName: deviceName)
+
+        self.session = MCSession(
+            peer: self.myPeerID,
             securityIdentity: nil,
             encryptionPreference: .required
         )
-        session.delegate = self
+
+        super.init()
+        self.session.delegate = self
     }
 
-    // MARK: - Advertising (Receiver)
+    // MARK: - Hosting
 
     func startHosting() {
         guard !isHosting else { return }
+
         advertiser = MCNearbyServiceAdvertiser(
             peer: myPeerID,
             discoveryInfo: nil,
             serviceType: serviceType
         )
+
         advertiser?.delegate = self
         advertiser?.startAdvertisingPeer()
+
         isHosting = true
         statusLabel = "Waiting for sender…"
         print("[PeerManager] 📡 Advertising started")
@@ -78,13 +68,19 @@ final class PeerManager: NSObject, ObservableObject {
         print("[PeerManager] ⏹ Advertising stopped")
     }
 
-    // MARK: - Browsing (Sender)
+    // MARK: - Browsing
 
     func startBrowsing() {
         guard !isBrowsing else { return }
-        browser = MCNearbyServiceBrowser(peer: myPeerID, serviceType: serviceType)
+
+        browser = MCNearbyServiceBrowser(
+            peer: myPeerID,
+            serviceType: serviceType
+        )
+
         browser?.delegate = self
         browser?.startBrowsingForPeers()
+
         isBrowsing = true
         statusLabel = "Searching for receiver…"
         print("[PeerManager] 🔍 Browsing started")
@@ -94,11 +90,11 @@ final class PeerManager: NSObject, ObservableObject {
         browser?.stopBrowsingForPeers()
         browser = nil
         isBrowsing = false
-        if !isConnected { statusLabel = "Idle" }
-        print("[PeerManager] ⏹ Browsing stopped")
-    }
 
-    // MARK: - Stop everything
+        if !isConnected {
+            statusLabel = "Idle"
+        }
+    }
 
     func stopAll() {
         stopHosting()
@@ -108,44 +104,46 @@ final class PeerManager: NSObject, ObservableObject {
         statusLabel = "Idle"
     }
 
-    // MARK: - Send
+    // MARK: - Send Card
 
     func sendCard(_ card: CardModel) {
-        guard isConnected, !session.connectedPeers.isEmpty else {
-            print("[PeerManager] ⚠️ No peers — cannot send")
-            return
-        }
+        guard !session.connectedPeers.isEmpty else { return }
+
         do {
             let data = try JSONEncoder().encode(card)
             try session.send(data, toPeers: session.connectedPeers, with: .reliable)
             statusLabel = "Card sent ✓"
             print("[PeerManager] ✅ Card sent: \(card.fullName)")
         } catch {
-            print("[PeerManager] ❌ Send error: \(error)")
+            print("Send error:", error)
         }
     }
 }
 
+//////////////////////////////////////////////////////////////
 // MARK: - MCSessionDelegate
+//////////////////////////////////////////////////////////////
 
 extension PeerManager: MCSessionDelegate {
 
     nonisolated func session(_ session: MCSession,
                              peer peerID: MCPeerID,
                              didChange state: MCSessionState) {
-        Task { @MainActor in
-            let connected = !session.connectedPeers.isEmpty
-            self.isConnected = connected
+
+        let isConnectedNow = !session.connectedPeers.isEmpty
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            self.isConnected = isConnectedNow
+
             switch state {
             case .connected:
                 self.statusLabel = "Connected!"
-                print("[PeerManager] 🟢 Connected: \(peerID.displayName)")
             case .connecting:
                 self.statusLabel = "Connecting…"
-                print("[PeerManager] 🟡 Connecting: \(peerID.displayName)")
             case .notConnected:
-                self.statusLabel = connected ? "Connected!" : "Disconnected"
-                print("[PeerManager] 🔴 Disconnected: \(peerID.displayName)")
+                self.statusLabel = isConnectedNow ? "Connected!" : "Disconnected"
             @unknown default:
                 break
             }
@@ -155,37 +153,40 @@ extension PeerManager: MCSessionDelegate {
     nonisolated func session(_ session: MCSession,
                              didReceive data: Data,
                              fromPeer peerID: MCPeerID) {
-        Task { @MainActor in
-            if var card = try? JSONDecoder().decode(CardModel.self, from: data) {
-                card.isReceived = true
-                self.receivedCard = card
-                self.statusLabel = "Card received from \(card.fullName)!"
-                print("[PeerManager] 📥 Received card: \(card.fullName)")
-            } else {
-                print("[PeerManager] ⚠️ Could not decode received data")
-            }
+
+        guard let card = try? JSONDecoder().decode(CardModel.self, from: data) else {
+            return
+        }
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.receivedCard = card
+            self.statusLabel = "Card received from \(card.fullName)!"
         }
     }
 
-    // Required but unused stubs
-    nonisolated func session(_ session: MCSession,
-                             didReceive stream: InputStream,
-                             withName streamName: String,
-                             fromPeer peerID: MCPeerID) {}
+    // Required stubs
 
-    nonisolated func session(_ session: MCSession,
-                             didStartReceivingResourceWithName resourceName: String,
-                             fromPeer peerID: MCPeerID,
-                             with progress: Progress) {}
+    nonisolated func session(_: MCSession,
+                             didReceive _: InputStream,
+                             withName _: String,
+                             fromPeer _: MCPeerID) {}
 
-    nonisolated func session(_ session: MCSession,
-                             didFinishReceivingResourceWithName resourceName: String,
-                             fromPeer peerID: MCPeerID,
-                             at localURL: URL?,
-                             withError error: Error?) {}
+    nonisolated func session(_: MCSession,
+                             didStartReceivingResourceWithName _: String,
+                             fromPeer _: MCPeerID,
+                             with _: Progress) {}
+
+    nonisolated func session(_: MCSession,
+                             didFinishReceivingResourceWithName _: String,
+                             fromPeer _: MCPeerID,
+                             at _: URL?,
+                             withError _: Error?) {}
 }
 
-// MARK: - MCNearbyServiceAdvertiserDelegate
+//////////////////////////////////////////////////////////////
+// MARK: - Advertiser Delegate
+//////////////////////////////////////////////////////////////
 
 extension PeerManager: MCNearbyServiceAdvertiserDelegate {
 
@@ -193,35 +194,38 @@ extension PeerManager: MCNearbyServiceAdvertiserDelegate {
                                 didReceiveInvitationFromPeer peerID: MCPeerID,
                                 withContext context: Data?,
                                 invitationHandler: @escaping (Bool, MCSession?) -> Void) {
-        // Auto‑accept every invitation — the app display controls who is a receiver.
-        print("[PeerManager] 📨 Invitation from \(peerID.displayName) — accepting")
+
+        // No UI mutation here — no actor hop needed
         invitationHandler(true, session)
     }
 
-    nonisolated func advertiser(_ advertiser: MCNearbyServiceAdvertiser,
+    nonisolated func advertiser(_: MCNearbyServiceAdvertiser,
                                 didNotStartAdvertisingPeer error: Error) {
-        print("[PeerManager] ❌ Advertiser error: \(error)")
+        print("Advertiser error:", error)
     }
 }
 
-// MARK: - MCNearbyServiceBrowserDelegate
+//////////////////////////////////////////////////////////////
+// MARK: - Browser Delegate
+//////////////////////////////////////////////////////////////
 
 extension PeerManager: MCNearbyServiceBrowserDelegate {
 
     nonisolated func browser(_ browser: MCNearbyServiceBrowser,
                              foundPeer peerID: MCPeerID,
-                             withDiscoveryInfo info: [String: String]?) {
-        print("[PeerManager] 👀 Found peer: \(peerID.displayName) — inviting")
-        browser.invitePeer(peerID, to: session, withContext: nil, timeout: 10)
+                             withDiscoveryInfo _: [String : String]?) {
+
+        browser.invitePeer(peerID,
+                           to: session,
+                           withContext: nil,
+                           timeout: 10)
     }
 
-    nonisolated func browser(_ browser: MCNearbyServiceBrowser,
-                             lostPeer peerID: MCPeerID) {
-        print("[PeerManager] 👋 Lost peer: \(peerID.displayName)")
-    }
+    nonisolated func browser(_: MCNearbyServiceBrowser,
+                             lostPeer _: MCPeerID) {}
 
-    nonisolated func browser(_ browser: MCNearbyServiceBrowser,
+    nonisolated func browser(_: MCNearbyServiceBrowser,
                              didNotStartBrowsingForPeers error: Error) {
-        print("[PeerManager] ❌ Browser error: \(error)")
+        print("Browser error:", error)
     }
 }

@@ -23,6 +23,7 @@ struct QRCodeScannerView: UIViewRepresentable {
 
     // MARK: - Coordinator
 
+    @MainActor
     final class Coordinator: NSObject, AVCaptureMetadataOutputObjectsDelegate {
         var onScan: (String) -> Void
         private var lastScanned: String = ""
@@ -31,25 +32,31 @@ struct QRCodeScannerView: UIViewRepresentable {
             self.onScan = onScan
         }
 
-        func metadataOutput(_ output: AVCaptureMetadataOutput,
-                            didOutput metadataObjects: [AVMetadataObject],
-                            from connection: AVCaptureConnection) {
+        nonisolated func metadataOutput(_ output: AVCaptureMetadataOutput,
+                             didOutput metadataObjects: [AVMetadataObject],
+                             from connection: AVCaptureConnection) {
             guard
                 let obj = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
                 obj.type == .qr,
-                let string = obj.stringValue,
-                string != lastScanned          // debounce repeated scans
+                let string = obj.stringValue
             else { return }
 
-            lastScanned = string
-            DispatchQueue.main.async {
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                
+                guard string != self.lastScanned else { return }
+                self.lastScanned = string
+                
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
                 self.onScan(string)
-            }
 
-            // Allow re-scanning after 3 s
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                self.lastScanned = ""
+                // Allow re-scanning after 3 s
+                Task { [weak self] in
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    await MainActor.run { [weak self] in
+                        self?.lastScanned = ""
+                    }
+                }
             }
         }
     }
