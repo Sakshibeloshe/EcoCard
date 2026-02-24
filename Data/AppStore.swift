@@ -74,6 +74,72 @@ final class AppStore: ObservableObject {
         }
     }
     
+    // MARK: - Peer Transfer: Save a received card into the inbox
+
+    func saveInboxCard(_ card: CardModel) {
+        let context = PersistenceController.shared.container.viewContext
+
+        let cdCard = CDCard(context: context)
+        cdCard.id = card.id
+        cdCard.type = card.type
+        cdCard.themeHex = card.theme.rawValue
+        cdCard.createdAt = Date()
+        cdCard.updatedAt = Date()
+        cdCard.displayName = card.fullName
+        cdCard.subtitle = card.title.isEmpty ? nil : card.title
+        cdCard.org = card.company.isEmpty ? nil : card.company
+        cdCard.bio = card.bio.isEmpty ? nil : card.bio
+        cdCard.isReceived = true
+        cdCard.isFavorite = false
+        cdCard.note = ""
+        cdCard.tagsRaw = ""
+
+        // Persist social / contact fields as CDCardField rows
+        let fieldPairs: [(String, String?)] = [
+            ("email",          card.email),
+            ("phone",          card.phone),
+            ("website",        card.website),
+            ("pronouns",       card.pronouns),
+            ("locationCity",   card.locationCity),
+            ("officeLocation", card.officeLocation),
+            ("linkedin",       card.linkedin),
+            ("instagram",      card.instagram),
+            ("github",         card.github),
+            ("portfolio",      card.portfolio),
+            ("snapchat",       card.snapchat),
+            ("spotify",        card.spotify),
+            ("whatsapp",       card.whatsapp),
+            ("eventBadge",     card.eventBadge),
+            ("skillsTags",     card.skillsTags),
+            ("emojiTags",      card.emojiTags),
+            ("nickname",       card.nickname),
+            ("intent",         card.intent),
+        ]
+
+        for (idx, (key, value)) in fieldPairs.enumerated() {
+            guard let value, !value.isEmpty else { continue }
+            let field = CDCardField(context: context)
+            field.id = UUID()
+            field.key = key
+            field.label = key.capitalized
+            field.value = value
+            field.kindRaw = "text"
+            field.orderIndex = Int16(idx)
+            field.card = cdCard
+        }
+
+        do {
+            try context.save()
+            // Build a model from what we just saved so state is consistent
+            var saved = card
+            saved.isReceived = true
+            inboxCards.insert(saved, at: 0)
+            print("[AppStore] 💾 Inbox card saved: \(card.fullName)")
+        } catch {
+            print("[AppStore] ❌ Failed to save inbox card: \(error)")
+        }
+    }
+
     func fetchMyCards() {
         let context = PersistenceController.shared.container.viewContext
         let request = NSFetchRequest<CDCard>(entityName: "CDCard")

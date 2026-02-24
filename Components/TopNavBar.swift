@@ -3,6 +3,7 @@ import SwiftUI
 
 struct TopNavBar: View {
     @EnvironmentObject var eventManager: EventModeManager
+    @EnvironmentObject var peerManager: PeerManager
     @State private var showSettings = false
     @State private var showEventSheet = false
 
@@ -12,6 +13,14 @@ struct TopNavBar: View {
                 // Receiver Mode Button (Primary)
                 Button {
                     eventManager.toggleReceiver()
+
+                    // Start or stop advertising depending on new state
+                    if eventManager.isReceiverActive {
+                        peerManager.startHosting()
+                    } else {
+                        peerManager.stopHosting()
+                    }
+
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 } label: {
                     ReceiverModeButton(isLive: eventManager.isReceiverActive)
@@ -52,12 +61,15 @@ struct TopNavBar: View {
             }
             .padding(.top, 4)
             .padding(.bottom, 12)
-            // Banner section
+
+            // Status banner — only shown while receiver is active
             if eventManager.isReceiverActive {
                 HStack(spacing: 12) {
                     GlowingDotView()
-                    
-                    Text("YOUR DEVICE IS VISIBLE TO OTHERS")
+
+                    Text(peerManager.isConnected
+                         ? "CONNECTED — RECEIVING CARD"
+                         : "YOUR DEVICE IS VISIBLE TO OTHERS")
                         .font(.system(size: 10, weight: .black, design: .default))
                         .tracking(1.5)
                         .foregroundColor(.skyBlue.opacity(0.9))
@@ -66,13 +78,14 @@ struct TopNavBar: View {
                 .frame(height: 44)
                 .background(
                     Capsule()
-                        .fill(Color.skyBlue.opacity(0.05))
+                        .fill(Color.skyBlue.opacity(peerManager.isConnected ? 0.12 : 0.05))
                         .overlay(
                             Capsule()
-                                .stroke(Color.skyBlue.opacity(0.15), lineWidth: 1)
+                                .stroke(Color.skyBlue.opacity(peerManager.isConnected ? 0.35 : 0.15), lineWidth: 1)
                         )
                 )
                 .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.easeInOut(duration: 0.3), value: peerManager.isConnected)
             }
         }
         .sheet(isPresented: $showSettings) {
@@ -87,7 +100,7 @@ struct TopNavBar: View {
 
 struct GlowingDotView: View {
     @State private var isAnimating = false
-    
+
     var body: some View {
         ZStack {
             // Outer glowing ring
@@ -96,7 +109,7 @@ struct GlowingDotView: View {
                 .frame(width: 14, height: 14)
                 .scaleEffect(isAnimating ? 2.5 : 1.0)
                 .opacity(isAnimating ? 0 : 0.6)
-            
+
             // Inner solid dot
             Circle()
                 .fill(Color.skyBlue)
