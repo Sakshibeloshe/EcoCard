@@ -41,15 +41,17 @@ struct ShareCardView: View {
                 Spacer()
             }
         }
-        .onChange(of: peerManager.isConnected) { connected in
+        // Swift 6: two-argument onChange (oldValue, newValue)
+        .onChange(of: peerManager.isConnected) { _, connected in
             if connected && !hasSentCard && shareMode == .touch {
                 hasSentCard = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 400_000_000)   // 0.4 s
                     peerManager.sendCard(card)
                 }
             }
         }
-        .onChange(of: shareMode) { mode in
+        .onChange(of: shareMode) { _, mode in
             if mode == .touch {
                 hasSentCard = false
                 peerManager.startBrowsing()
@@ -342,9 +344,10 @@ struct ShareCardView: View {
 
     private func generateQRIfNeeded() {
         guard qrImage == nil else { return }
-        DispatchQueue.global(qos: .userInitiated).async {
-            let img = QRCodeGenerator.generate(from: card, size: 440)
-            DispatchQueue.main.async { qrImage = img }
+        let cardSnapshot = card        // capture value type — no actor crossing
+        Task.detached(priority: .userInitiated) {
+            let img = QRCodeGenerator.generate(from: cardSnapshot, size: 440)
+            await MainActor.run { qrImage = img }
         }
     }
 

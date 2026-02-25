@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-struct CardModel: Identifiable, Hashable, Codable {
+struct CardModel: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
     var type: CardType
     var theme: CardTheme

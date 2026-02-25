@@ -116,20 +116,20 @@ struct MyCardsView: View {
             ShareCardView(card: card)
         }
         // Auto-save received card and show toast
-        .onChange(of: peerManager.receivedCard) { card in
+        // Swift 6: two-argument onChange (oldValue, newValue)
+        .onChange(of: peerManager.receivedCard) { _, card in
             guard let card else { return }
             store.saveInboxCard(card)
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 receivedToastName = card.fullName
             }
-            // Dismiss toast after 3 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                withAnimation {
-                    receivedToastName = nil
-                }
-            }
-            // Clear the pending card so future receives trigger onChange again
+            // Clear so future receives trigger onChange again
             peerManager.receivedCard = nil
+            // Dismiss toast after 3 s using structured concurrency
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                withAnimation { receivedToastName = nil }
+            }
         }
     }
 }
