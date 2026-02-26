@@ -49,6 +49,13 @@ struct AddCardView: View {
                             NavigationLink(value: CardType.blank) {
                                 TemplateRow(icon: "plus", title: "Custom Blank", subtitle: "BUILD FROM SCRATCH", color: Color.gray)
                             }
+
+                            Button {
+                                showEventDialog = true
+                            } label: {
+                                TemplateRow(icon: "bolt.fill", title: "Event Session", subtitle: "CREATE OR JOIN", color: Color.softRose)
+                            }
+                            .buttonStyle(.plain)
                         }
                         .padding(.top, 18)
                         

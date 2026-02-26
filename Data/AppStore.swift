@@ -140,6 +140,25 @@ final class AppStore: ObservableObject {
         }
     }
 
+    func saveInboxCardIfNew(_ card: CardModel) {
+        // First check memory
+        if inboxCards.contains(where: { $0.id == card.id }) { return }
+        
+        // Then check DB to be sure
+        let context = PersistenceController.shared.container.viewContext
+        let request = NSFetchRequest<CDCard>(entityName: "CDCard")
+        request.predicate = NSPredicate(format: "id == %@", card.id as CVarArg)
+        
+        do {
+            let count = try context.count(for: request)
+            if count > 0 { return }
+        } catch {
+            print("[AppStore] ❌ Check error: \(error)")
+        }
+        
+        saveInboxCard(card)
+    }
+
     func fetchMyCards() {
         let context = PersistenceController.shared.container.viewContext
         let request = NSFetchRequest<CDCard>(entityName: "CDCard")
