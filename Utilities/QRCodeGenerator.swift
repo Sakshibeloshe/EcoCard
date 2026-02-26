@@ -26,7 +26,9 @@ enum QRCodeGenerator {
 
     /// Encodes a `CardModel` into the `ecocard://` deep-link string.
     nonisolated static func encode(_ card: CardModel) -> String? {
-        guard let data = try? JSONEncoder().encode(card) else { return nil }
+        var copy = card
+        copy.photo = nil // Strip photo for QR generation to stay within payload limits.
+        guard let data = try? JSONEncoder().encode(copy) else { return nil }
         return scheme + data.base64EncodedString()
     }
 

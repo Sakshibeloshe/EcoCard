@@ -58,6 +58,16 @@ struct ShareCardView: View {
                 generateQRIfNeeded()
             }
         }
+        .onChange(of: peerManager.receivedCard) { card in
+            guard let card = card else { return }
+            // Save it locally
+            store.saveInboxCard(card)
+            // Show feedback in this sheet
+            withAnimation { showScannedSuccess = true }
+            scannedCard = card
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            // Note: MyCardsView also listens and shows a toast after we dismiss.
+        }
         .onAppear {
             generateQRIfNeeded()
         }
@@ -191,6 +201,33 @@ struct ShareCardView: View {
                     .padding(.top, 4)
                 }
             }
+            .overlay(
+                ZStack {
+                    if showScannedSuccess {
+                        VStack(spacing: 12) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 60))
+                                .foregroundColor(.green)
+                            
+                            Text("Received \(scannedCard?.fullName ?? "Card")!")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            Button("Close & View In Inbox") {
+                                showScannedSuccess = false
+                                dismiss()
+                            }
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.skyBlue)
+                            .padding(.top, 4)
+                        }
+                        .padding(32)
+                        .background(Color.black.opacity(0.9))
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .shadow(radius: 20)
+                    }
+                }
+            )
         }
     }
 

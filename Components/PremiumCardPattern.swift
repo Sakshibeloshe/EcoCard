@@ -27,7 +27,7 @@ struct PremiumCardPattern: View {
             Rectangle()
                 .fill(Color.black.opacity(0.03))
                 .overlay(
-                    Image("noise_texture") // Add a grain PNG to your assets
+                    Image("noise_texture", bundle: .module)
                         .resizable(resizingMode: .tile)
                         .opacity(0.05)
                         .blendMode(.overlay)
