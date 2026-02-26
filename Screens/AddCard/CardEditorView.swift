@@ -15,6 +15,7 @@ struct CardEditorView: View {
 
     // Photo
     @State private var pickedImage: UIImage?
+    @State private var selectedPhotoItem: PhotosPickerItem?
     
     // Theme selection
     @State private var selectedTheme: CardTheme = .pink
@@ -77,6 +78,64 @@ struct CardEditorView: View {
                         ThemeColorPicker(selectedTheme: $selectedTheme)
                     }
 
+                    // Photo Picker Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("PHOTO")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.4))
+                            .tracking(1.5)
+
+                        PhotosPicker(
+                            selection: $selectedPhotoItem,
+                            matching: .images,
+                            photoLibrary: .shared()
+                        ) {
+                            HStack(spacing: 14) {
+                                // Thumbnail or placeholder
+                                ZStack {
+                                    if let img = pickedImage {
+                                        Image(uiImage: img)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 56, height: 56)
+                                            .clipShape(Circle())
+                                    } else {
+                                        Circle()
+                                            .fill(Color.white.opacity(0.08))
+                                            .frame(width: 56, height: 56)
+                                        Image(systemName: "person.crop.circle.badge.plus")
+                                            .font(.system(size: 22))
+                                            .foregroundStyle(.white.opacity(0.5))
+                                    }
+                                }
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(pickedImage == nil ? "Add Profile Photo" : "Change Photo")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                    Text("FROM YOUR PHOTO LIBRARY")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.white.opacity(0.35))
+                                        .tracking(1.2)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.3))
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .background(Color.charcoalGrey.opacity(0.6))
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                            )
+                        }
+                    }
+
                     // Form Fields
                     VStack(spacing: 0) {
                         ForEach(FieldCatalog.fields(for: type)) { field in
@@ -128,6 +187,15 @@ struct CardEditorView: View {
         .navigationTitle(type.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .onChange(of: selectedPhotoItem) { newItem in
+            Task {
+                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                   let img = UIImage(data: data) {
+                    // Downscale to protect payload size during Multipeer send.
+                    pickedImage = img.resizedIfNeeded(maxDimension: 512)
+                }
+            }
+        }
         .fullScreenCover(isPresented: $showPreview) {
             CardEditorPreview(
                 card: previewCard,

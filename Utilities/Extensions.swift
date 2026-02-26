@@ -25,3 +25,23 @@ extension Color {
     static let lavenderPurple = Color(hex: "#D6BCFA")
     static let softTerracotta = Color(hex: "#F6AD55")
 }
+
+// MARK: - UIImage Helpers
+
+import UIKit
+
+extension UIImage {
+    /// Scales the image down so neither dimension exceeds `maxDimension`.
+    /// Returns `self` unchanged if already small enough.
+    /// Used to cap photo payloads before Multipeer or Core Data storage.
+    func resizedIfNeeded(maxDimension: CGFloat) -> UIImage {
+        let largest = max(size.width, size.height)
+        guard largest > maxDimension else { return self }
+        let scale = maxDimension / largest
+        let newSize = CGSize(width: size.width * scale, height: size.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        return renderer.image { _ in
+            self.draw(in: CGRect(origin: .zero, size: newSize))
+        }
+    }
+}
