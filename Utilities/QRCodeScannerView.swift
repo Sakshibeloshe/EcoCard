@@ -68,8 +68,33 @@ final class ScannerUIView: UIView {
 
     private func setupSession() {
         guard captureSession == nil else { return }
-        guard AVCaptureDevice.authorizationStatus(for: .video) != .denied else {
-            print("[Scanner] Camera access denied"); return
+
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+
+        switch status {
+        case .notDetermined:
+            // First launch — request permission, then retry setup
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self.setupSession()
+                    } else {
+                        self.showDeniedLabel()
+                    }
+                }
+            }
+            return
+
+        case .denied, .restricted:
+            print("[Scanner] Camera access denied or restricted")
+            showDeniedLabel()
+            return
+
+        case .authorized:
+            break // proceed
+
+        @unknown default:
+            break
         }
 
         let session = AVCaptureSession()
@@ -103,6 +128,24 @@ final class ScannerUIView: UIView {
         DispatchQueue.global(qos: .userInitiated).async {
             session.startRunning()
         }
+    }
+
+    /// Show a label when camera access was denied / restricted.
+    private func showDeniedLabel() {
+        let label = UILabel()
+        label.text = "Camera access required.\nGo to Settings → EcoCard → Camera"
+        label.textColor = .white
+        label.font = .systemFont(ofSize: 14, weight: .medium)
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: centerYAnchor),
+            label.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 16),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -16)
+        ])
     }
 }
 

@@ -10,6 +10,7 @@ struct MyCardsView: View {
     @EnvironmentObject var store: AppStore
     @EnvironmentObject var eventManager: EventModeManager
     @EnvironmentObject var peerManager: PeerManager
+    @EnvironmentObject var eventPeerManager: EventPeerManager
 
     @State private var search = ""
     @State private var filter = "All"
@@ -107,6 +108,24 @@ struct MyCardsView: View {
         }
         .onAppear {
             store.fetchMyCards()
+
+            // Wire event peer manager callback to save received cards
+            eventPeerManager.onCardReceived = { card in
+                store.saveInboxCard(card)
+
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    receivedToastName = card.fullName
+                }
+
+                Task {
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    await MainActor.run {
+                        withAnimation {
+                            receivedToastName = nil
+                        }
+                    }
+                }
+            }
         }
         .sheet(isPresented: $showEventSheet) {
             EventModeSheet()
@@ -115,8 +134,7 @@ struct MyCardsView: View {
         .fullScreenCover(item: $selectedCard) { card in
             ShareCardView(card: card)
         }
-        // Auto-save received card and show toast
-        // Swift 6: two-argument onChange (oldValue, newValue)
+        // Auto-save received card from 1:1 peer transfer and show toast
         .onChange(of: peerManager.receivedCard) { card in
             guard let card else { return }
 

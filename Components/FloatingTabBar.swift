@@ -8,12 +8,13 @@ import SwiftUI
 
 struct FloatingTabBar: View {
     @Binding var selectedTab: Tab
+    @Binding var showScanner: Bool
 
     var body: some View {
         VStack {
             Spacer()
 
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 // My Cards Tab
                 TabButton(
                     icon: "rectangle.fill",
@@ -46,6 +47,28 @@ struct FloatingTabBar: View {
                     selectedTab = .inbox
                     UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                 }
+
+                // Divider
+                Rectangle()
+                    .fill(Color.white.opacity(0.12))
+                    .frame(width: 1, height: 28)
+                    .padding(.horizontal, 2)
+
+                // QR Scan Button
+                Button {
+                    showScanner = true
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: "qrcode.viewfinder")
+                            .font(.system(size: 20, weight: .bold))
+
+                        Text("Scan")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                    }
+                    .foregroundColor(.white.opacity(0.7))
+                    .frame(width: 58, height: 58)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
@@ -57,7 +80,7 @@ struct FloatingTabBar: View {
                     .stroke(Color.white.opacity(0.1), lineWidth: 1)
             )
             .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 10)
-            .padding(.bottom, 10) // Lessen constraint from bottom
+            .padding(.bottom, 10)
         }
     }
 }
@@ -86,4 +109,3 @@ struct TabButton: View {
         }
     }
 }
-
