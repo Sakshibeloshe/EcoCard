@@ -327,7 +327,7 @@ struct OnboardingView: View {
                         .stroke(Color.white.opacity(0.08), lineWidth: 1)
                 )
             }
-            .onChange(of: selectedPhoto) { _, item in
+            .onChange(of: selectedPhoto) { item in
                 Task {
                     if let data = try? await item?.loadTransferable(type: Data.self) {
                         photoData = data

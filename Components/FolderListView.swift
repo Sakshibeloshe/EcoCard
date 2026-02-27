@@ -41,8 +41,7 @@ struct FolderListView: View {
                     .clipShape(Capsule())
                     .overlay(
                         Capsule()
-                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4]))
+                            .strokeBorder(Color.white.opacity(0.08), style: StrokeStyle(lineWidth: 1, dash: [4]))
                     )
                 }
             }
@@ -91,3 +90,4 @@ struct FolderListView: View {
         .overlay(Capsule().stroke(Color.white.opacity(0.1), lineWidth: 1))
     }
 }
+
