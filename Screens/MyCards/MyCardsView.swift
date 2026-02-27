@@ -122,7 +122,7 @@ struct MyCardsView: View {
         } message: { card in
             Text("\"\(card.fullName)\" will be permanently deleted.")
         }
-        .onChange(of: peerManager.receivedCard) { _, card in
+        .onChange(of: peerManager.receivedCard) { card in
             handleReceived(card)
             peerManager.receivedCard = nil
         }
@@ -229,3 +229,4 @@ struct MyCardsView: View {
         }
     }
 }
+

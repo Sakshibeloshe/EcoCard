@@ -169,7 +169,7 @@ struct EventModeSheet: View {
                     .autocorrectionDisabled()
                     .padding(20)
                     .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.white.opacity(0.06)))
-                    .onChange(of: joinCode) { _, newValue in
+                    .onChange(of: joinCode) { newValue in
                         if newValue.count > 6 { joinCode = String(newValue.prefix(6)) }
                     }
             }
