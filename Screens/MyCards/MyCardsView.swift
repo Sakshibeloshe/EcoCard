@@ -65,47 +65,9 @@ struct MyCardsView: View {
                         eventModeEntry.padding(.horizontal, 20)
                     }
 
-                    // Cards with parallax + long-press context menu
                     LazyVStack(spacing: 22) {
                         ForEach(filteredCards) { card in
-                            GeometryReader { geo in
-                                let midY = geo.frame(in: .global).midY
-                                let screenMid = UIScreen.main.bounds.height / 2
-                                let normalised = min(max((midY - screenMid) / 300, -1), 1)
-                                let scale = 1.0 - abs(normalised) * 0.04
-                                let rotX = normalised * 1.5
-
-                                Button { selectedCard = card } label: {
-                                    CardFrontView(card: card, isSelected: selectedCard?.id == card.id)
-                                }
-                                .buttonStyle(CardPressButtonStyle())
-                                .scaleEffect(scale)
-                                .rotation3DEffect(.degrees(Double(rotX)), axis: (x: 1, y: 0, z: 0))
-                                .animation(.easeOut(duration: 0.1), value: scale)
-                                // ── Long-press context menu ───────────────
-                                .contextMenu {
-                                    Button {
-                                        withAnimation(.spring()) {
-                                            store.toggleFavoriteMyCard(card)
-                                        }
-                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                    } label: {
-                                        let fav = store.myCards.first(where: { $0.id == card.id })?.isFavorite ?? false
-                                        Label(fav ? "Unfavourite" : "Favourite",
-                                              systemImage: fav ? "star.slash" : "star")
-                                    }
-
-                                    Divider()
-
-                                    Button(role: .destructive) {
-                                        cardToDelete = card
-                                        showDeleteAlert = true
-                                    } label: {
-                                        Label("Delete Card", systemImage: "trash")
-                                    }
-                                }
-                            }
-                            .frame(height: UIScreen.main.bounds.width / 1.5 - 40 + 20)
+                            cardRow(card)
                         }
                     }
                     .padding(.top, 12)
@@ -164,6 +126,44 @@ struct MyCardsView: View {
             handleReceived(card)
             peerManager.receivedCard = nil
         }
+    }
+    // MARK: - Card Row
+
+    @ViewBuilder
+    private func cardRow(_ card: CardModel) -> some View {
+        GeometryReader { geo in
+            let midY      = geo.frame(in: .global).midY
+            let screenMid = UIScreen.main.bounds.height / 2
+            let normalised: CGFloat = min(max((midY - screenMid) / 300, -1), 1)
+            let scale: CGFloat = 1.0 - abs(normalised) * 0.04
+            let rotX: Double  = Double(normalised) * 1.5
+            let isFav = store.myCards.first(where: { $0.id == card.id })?.isFavorite ?? false
+
+            Button { selectedCard = card } label: {
+                CardFrontView(card: card, isSelected: selectedCard?.id == card.id)
+            }
+            .buttonStyle(CardPressButtonStyle())
+            .scaleEffect(scale)
+            .rotation3DEffect(.degrees(rotX), axis: (x: 1, y: 0, z: 0))
+            .animation(.easeOut(duration: 0.1), value: scale)
+            .contextMenu {
+                Button {
+                    withAnimation(.spring()) { store.toggleFavoriteMyCard(card) }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                } label: {
+                    Label(isFav ? "Unfavourite" : "Favourite",
+                          systemImage: isFav ? "star.slash" : "star")
+                }
+                Divider()
+                Button(role: .destructive) {
+                    cardToDelete = card
+                    showDeleteAlert = true
+                } label: {
+                    Label("Delete Card", systemImage: "trash")
+                }
+            }
+        }
+        .frame(height: UIScreen.main.bounds.width / 1.5 - 40 + 20)
     }
 
     // MARK: - Event Components
