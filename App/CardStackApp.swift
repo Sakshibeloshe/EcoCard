@@ -1,5 +1,3 @@
-
-
 import SwiftUI
 
 @main
@@ -9,6 +7,8 @@ struct CardStackApp: App {
     @StateObject private var peerManager = PeerManager()
     @StateObject private var eventPeerManager = EventModePeerManager()
 
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+
     var body: some Scene {
         WindowGroup {
             RootTabView()
@@ -17,6 +17,13 @@ struct CardStackApp: App {
                 .environmentObject(peerManager)
                 .environmentObject(eventPeerManager)
                 .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
+                .fullScreenCover(isPresented: .init(
+                    get: { !hasCompletedOnboarding },
+                    set: { if !$0 { hasCompletedOnboarding = true } }
+                )) {
+                    OnboardingView()
+                        .environmentObject(store)
+                }
         }
     }
 }

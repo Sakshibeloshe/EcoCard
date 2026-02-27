@@ -1,23 +1,18 @@
-//
-//  TemplateRow.swift
-//  BeforeUSayIt
-//
-//  Created by SDC-USER on 07/02/26.
-//
 import SwiftUI
 
 struct TemplateRow: View {
     let icon: String
     let title: String
     let subtitle: String
-    var color: Color = .gray // Default if not specified
+    var color: Color = .gray
+    @State private var isPressed = false
 
     var body: some View {
         HStack(spacing: 18) {
 
             ZStack {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(color.opacity(0.15)) // Tinted background
+                    .fill(color.opacity(0.15))
                     .frame(width: 56, height: 56)
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -26,21 +21,37 @@ struct TemplateRow: View {
 
                 Image(systemName: icon)
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(color) // Colored icon
+                    .foregroundColor(color)
             }
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
-                    .font(.system(size: 18, weight: .bold)) // Bolder title
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.white)
 
                 Text(subtitle)
-                    .font(.system(size: 11, weight: .heavy)) // Smaller, heavier subtitle
+                    .font(.system(size: 11, weight: .heavy))
                     .foregroundColor(.white.opacity(0.35))
                     .tracking(1.4)
             }
 
             Spacer()
+
+            // Mini card color preview strip
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [color.opacity(0.9), color.opacity(0.5)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 28, height: 40)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .stroke(color.opacity(0.3), lineWidth: 1)
+                )
+                .shadow(color: color.opacity(0.3), radius: 6, x: 0, y: 3)
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .bold))
@@ -48,8 +59,8 @@ struct TemplateRow: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 18)
-        .background(Color.white.opacity(0.04)) // Very dark background
-        .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous)) // More rounded
+        .background(Color.white.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 32, style: .continuous)
                 .stroke(Color.white.opacity(0.06), lineWidth: 1)

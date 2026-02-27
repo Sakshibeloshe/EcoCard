@@ -1,9 +1,3 @@
-//
-//  AppStore.swift
-//  BeforeUSayIt
-//
-//  Created by SDC-USER on 06/02/26.
-//
 import SwiftUI
 import CoreData
 
@@ -13,10 +7,10 @@ final class AppStore: ObservableObject {
     @Published var folders: [FolderModel] = []
     @Published var myCards: [CardModel] = []
     @Published var inboxCards: [CardModel] = []
+    @Published var activeTab: Tab = .myCards  // Feature 4: programmatic tab switching
 
     init() {
         folders = DummyData.folders
-        // We'll rely on fetchMyCards to populate cards from DB
     }
 
     func addMyCard(_ card: CardModel) {
@@ -29,11 +23,17 @@ final class AppStore: ObservableObject {
         }
     }
 
+    func toggleFavoriteMyCard(_ card: CardModel) {
+        if let i = myCards.firstIndex(where: { $0.id == card.id }) {
+            myCards[i].isFavorite.toggle()
+        }
+    }
+
     func deleteCard(_ card: CardModel) {
         let context = PersistenceController.shared.container.viewContext
         let request = NSFetchRequest<CDCard>(entityName: "CDCard")
         request.predicate = NSPredicate(format: "id == %@", card.id as CVarArg)
-        
+
         do {
             if let result = try context.fetch(request).first {
                 context.delete(result)
@@ -42,7 +42,7 @@ final class AppStore: ObservableObject {
         } catch {
             print("Failed to delete card: \(error)")
         }
-        
+
         myCards.removeAll { $0.id == card.id }
         inboxCards.removeAll { $0.id == card.id }
     }
@@ -53,15 +53,19 @@ final class AppStore: ObservableObject {
         }
     }
 
+    func removeCardFromFolder(cardId: UUID) {
+        assignFolder(cardId: cardId, folderId: nil)
+    }
+
     func createFolder(name: String) {
-        guard !folders.contains(where: { $0.name == name }) else { return }
-        let newFolder = FolderModel(id: UUID(), name: name)
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, !folders.contains(where: { $0.name == trimmed }) else { return }
+        let newFolder = FolderModel(id: UUID(), name: trimmed)
         folders.append(newFolder)
     }
 
     func deleteFolder(id: UUID) {
         folders.removeAll { $0.id == id }
-        // Optional: remove folder assignment from cards
         for i in 0..<inboxCards.count {
             if inboxCards[i].folderId == id {
                 inboxCards[i].folderId = nil
@@ -73,8 +77,8 @@ final class AppStore: ObservableObject {
             }
         }
     }
-    
-    // MARK: - Peer Transfer: Save a received card into the inbox
+
+    // MARK: - Peer Transfer
 
     func saveInboxCard(_ card: CardModel) {
         let context = PersistenceController.shared.container.viewContext
@@ -94,7 +98,6 @@ final class AppStore: ObservableObject {
         cdCard.note = ""
         cdCard.tagsRaw = ""
 
-        // Persist social / contact fields as CDCardField rows
         let fieldPairs: [(String, String?)] = [
             ("email",          card.email),
             ("phone",          card.phone),
@@ -130,10 +133,13 @@ final class AppStore: ObservableObject {
 
         do {
             try context.save()
-            // Build a model from what we just saved so state is consistent
             var saved = card
             saved.isReceived = true
             inboxCards.insert(saved, at: 0)
+            // Feature 4: Auto-switch to inbox
+            withAnimation(.easeInOut(duration: 0.22)) {
+                activeTab = .inbox
+            }
             print("[AppStore] 💾 Inbox card saved: \(card.fullName)")
         } catch {
             print("[AppStore] ❌ Failed to save inbox card: \(error)")
@@ -141,21 +147,19 @@ final class AppStore: ObservableObject {
     }
 
     func saveInboxCardIfNew(_ card: CardModel) {
-        // First check memory
         if inboxCards.contains(where: { $0.id == card.id }) { return }
-        
-        // Then check DB to be sure
+
         let context = PersistenceController.shared.container.viewContext
         let request = NSFetchRequest<CDCard>(entityName: "CDCard")
         request.predicate = NSPredicate(format: "id == %@", card.id as CVarArg)
-        
+
         do {
             let count = try context.count(for: request)
             if count > 0 { return }
         } catch {
             print("[AppStore] ❌ Check error: \(error)")
         }
-        
+
         saveInboxCard(card)
     }
 
@@ -163,15 +167,14 @@ final class AppStore: ObservableObject {
         let context = PersistenceController.shared.container.viewContext
         let request = NSFetchRequest<CDCard>(entityName: "CDCard")
         request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
-        
+
         do {
             let results = try context.fetch(request)
             let allModels = results.map { $0.toModel() }
-            
+
             let dbMyCards = allModels.filter { !$0.isReceived }
             let dbInboxCards = allModels.filter { $0.isReceived }
-            
-            // ONLY use dummy data if we have NOTHING in the DB
+
             if allModels.isEmpty {
                 let dummy = DummyData.cards(folders: folders)
                 self.myCards = dummy.filter { !$0.isReceived }

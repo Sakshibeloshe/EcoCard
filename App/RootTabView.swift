@@ -1,32 +1,36 @@
-
 import SwiftUI
 
 struct RootTabView: View {
-    @State private var selectedTab: Tab = .myCards
+    @EnvironmentObject var store: AppStore
 
     var body: some View {
         ZStack {
             Color.obsidianBlack.ignoresSafeArea()
 
-            Group {
-                switch selectedTab {
-                case .myCards:
-                    NavigationStack {
-                        MyCardsView()
-                    }
-                case .add:
-                    NavigationStack {
-                        AddCardView()
-                    }
-                case .inbox:
-                    NavigationStack {
-                        InboxView()
-                    }
+            ZStack {
+                if store.activeTab == .myCards {
+                    NavigationStack { MyCardsView() }
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .move(edge: .bottom)),
+                            removal: .opacity
+                        ))
+                } else if store.activeTab == .add {
+                    NavigationStack { AddCardView() }
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .move(edge: .bottom)),
+                            removal: .opacity
+                        ))
+                } else if store.activeTab == .inbox {
+                    InboxView()
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .move(edge: .bottom)),
+                            removal: .opacity
+                        ))
                 }
             }
-            // Removed padding to allow content to flow behind floating UI
+            .animation(.easeInOut(duration: 0.22), value: store.activeTab)
 
-            FloatingTabBar(selectedTab: $selectedTab)
+            FloatingTabBar(selectedTab: $store.activeTab)
         }
     }
 }
@@ -34,4 +38,3 @@ struct RootTabView: View {
 enum Tab {
     case myCards, add, inbox
 }
-
