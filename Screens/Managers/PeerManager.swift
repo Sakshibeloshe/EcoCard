@@ -1,5 +1,5 @@
+@preconcurrency import MultipeerConnectivity
 import Foundation
-import MultipeerConnectivity
 import UIKit
 
 /// Manages near-field card transfer via MultipeerConnectivity.
@@ -12,7 +12,7 @@ import UIKit
 /// • `session` is captured in nonisolated delegates as a `nonisolated(unsafe)`
 ///   let-constant; MPC itself manages its thread-safety.
 @MainActor
-final class PeerManager: NSObject, ObservableObject {
+final class PeerManager: NSObject, ObservableObject, @unchecked Sendable {
 
     // MARK: - @Published
 

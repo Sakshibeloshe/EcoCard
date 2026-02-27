@@ -188,7 +188,7 @@ struct CardEditorView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onChange(of: selectedPhotoItem) { newItem in
-            Task {
+            Task { @MainActor in
                 if let data = try? await newItem?.loadTransferable(type: Data.self),
                    let img = UIImage(data: data) {
                     // Downscale to protect payload size during Multipeer send.

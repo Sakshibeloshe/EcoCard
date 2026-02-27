@@ -1,5 +1,5 @@
+@preconcurrency import MultipeerConnectivity
 import Foundation
-import MultipeerConnectivity
 import UIKit
 
 /// Manages event-mode group card exchange via MultipeerConnectivity.
@@ -12,7 +12,7 @@ import UIKit
 /// `@MainActor` class with `nonisolated` MC delegate methods that
 /// hop back to the main actor via Task.
 @MainActor
-final class EventPeerManager: NSObject, ObservableObject {
+final class EventPeerManager: NSObject, ObservableObject, @unchecked Sendable {
 
     // MARK: - Published State
 
