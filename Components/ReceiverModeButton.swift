@@ -55,7 +55,7 @@ struct ReceiverModeButton: View {
                 value: pulse
             )
         }
-        .onChange(of: isLive) { _, live in
+        .onChange(of: isLive) { live in
             if live {
                 pulse = false
                 ripple = false
