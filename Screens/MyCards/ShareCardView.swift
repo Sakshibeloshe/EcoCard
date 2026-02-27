@@ -10,7 +10,6 @@ struct ShareCardView: View {
 
     @State private var shareMode: ShareMode = .touch
     @State private var isAnimating = false
-    @State private var hasSentCard = false
 
     // QR mode state
     @State private var qrRole: QRRole = .sender          // sender shows QR; receiver scans
@@ -41,24 +40,33 @@ struct ShareCardView: View {
                 Spacer()
             }
         }
-        // Swift 6: two-argument onChange (oldValue, newValue)
-        .onChange(of: peerManager.isConnected) { _, connected in
-            if connected && !hasSentCard && shareMode == .touch {
-                hasSentCard = true
+        .onChange(of: peerManager.isConnected) { connected in
+            // Auto-send when a peer connects, but only once per share session.
+            if connected && !peerManager.hasSentCard && shareMode == .touch {
                 Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 400_000_000)   // 0.4 s
+                    try? await Task.sleep(nanoseconds: 400_000_000)
                     peerManager.sendCard(card)
                 }
             }
         }
-        .onChange(of: shareMode) { _, mode in
+        .onChange(of: shareMode) { mode in
             if mode == .touch {
-                hasSentCard = false
-                peerManager.startBrowsing()
+                // Reset so we can send this card to another peer.
+                peerManager.resetForNewSend()
             } else {
                 peerManager.stopBrowsing()
                 generateQRIfNeeded()
             }
+        }
+        .onChange(of: peerManager.receivedCard) { card in
+            guard let card = card else { return }
+            // Save it locally
+            store.saveInboxCard(card)
+            // Show feedback in this sheet
+            withAnimation { showScannedSuccess = true }
+            scannedCard = card
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            // Note: MyCardsView also listens and shows a toast after we dismiss.
         }
         .onAppear {
             generateQRIfNeeded()
@@ -160,10 +168,12 @@ struct ShareCardView: View {
             }
             .onAppear {
                 isAnimating = true
-                peerManager.startBrowsing()
-                hasSentCard = false
+                // resetForNewSend: disconnects any old peer, keeps session alive,
+                // and restarts browsing — avoids TLS renegotiation on subsequent sends.
+                peerManager.resetForNewSend()
             }
             .onDisappear {
+                // Only stop browsing; keep the session alive for the next send.
                 peerManager.stopBrowsing()
             }
 
@@ -179,7 +189,7 @@ struct ShareCardView: View {
                     .multilineTextAlignment(.center)
 
                 // QR fallback hint — only shown when not yet connected
-                if !peerManager.isConnected && !hasSentCard {
+                if !peerManager.isConnected && !peerManager.hasSentCard {
                     Button {
                         withAnimation { shareMode = .qr }
                     } label: {
@@ -191,6 +201,33 @@ struct ShareCardView: View {
                     .padding(.top, 4)
                 }
             }
+            .overlay(
+                ZStack {
+                    if showScannedSuccess {
+                        VStack(spacing: 12) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 60))
+                                .foregroundColor(.green)
+                            
+                            Text("Received \(scannedCard?.fullName ?? "Card")!")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            Button("Close & View In Inbox") {
+                                showScannedSuccess = false
+                                dismiss()
+                            }
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.skyBlue)
+                            .padding(.top, 4)
+                        }
+                        .padding(32)
+                        .background(Color.black.opacity(0.9))
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .shadow(radius: 20)
+                    }
+                }
+            )
         }
     }
 
@@ -352,18 +389,18 @@ struct ShareCardView: View {
     }
 
     private var statusTitle: String {
-        if hasSentCard { return "Card Sent!" }
+        if peerManager.hasSentCard { return "Card Sent!" }
         if peerManager.isConnected { return "Connected — Sending…" }
         return "Searching…"
     }
 
     private var statusSubtitle: String {
-        if hasSentCard { return "CARD DELIVERED SUCCESSFULLY" }
+        if peerManager.hasSentCard { return "CARD DELIVERED SUCCESSFULLY" }
         if peerManager.isConnected { return "FOUND RECEIVER — TRANSFERRING" }
         return "HOLD DEVICES CLOSE TOGETHER"
     }
 
     private var rippleColor: Color {
-        hasSentCard ? .green : (peerManager.isConnected ? Color.skyBlue : .white)
+        peerManager.hasSentCard ? .green : (peerManager.isConnected ? Color.skyBlue : .white)
     }
 }

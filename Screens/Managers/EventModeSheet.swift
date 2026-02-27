@@ -2,41 +2,55 @@ import SwiftUI
 
 struct EventModeSheet: View {
     @EnvironmentObject var eventManager: EventModeManager
-    @EnvironmentObject var eventPeerManager: EventModePeerManager
+    @EnvironmentObject var eventPeerManager: EventPeerManager
     @EnvironmentObject var store: AppStore
     @Environment(\.dismiss) var dismiss
 
+    enum EventRole: String, CaseIterable {
+        case create = "Create"
+        case join   = "Join"
+    }
+
+    @State private var role: EventRole = .create
     @State private var eventName: String = ""
     @State private var folderName: String = ""
     @State private var joinCode: String = ""
-    @State private var mode: SheetMode = .selection
+    @State private var selectedCardID: UUID? = nil
     @State private var persistedCardIDs: Set<UUID> = []
 
-    enum SheetMode { case selection, create, join, active }
+    private var activeCode: String {
+        role == .create ? eventManager.eventCode : joinCode.uppercased()
+    }
+
+    private var selectedCard: CardModel? {
+        store.myCards.first(where: { $0.id == selectedCardID })
+    }
+
+    private var canActivate: Bool {
+        if role == .create {
+            return !eventName.isEmpty && !eventManager.eventCode.isEmpty && selectedCard != nil
+        } else {
+            return joinCode.count >= 4 && selectedCard != nil
+        }
+    }
 
     var body: some View {
         ZStack {
             Color.obsidianBlack.ignoresSafeArea()
 
-            VStack(spacing: 24) {
-                headerArea
-
-                if eventPeerManager.isActive {
-                    activeSessionView
-                } else {
-                    switch mode {
-                    case .selection: selectionView
-                    case .create:    createEventView
-                    case .join:      joinEventView
-                    case .active:    activeSessionView
-                    }
-                }
+            if eventPeerManager.isActive {
+                activeSessionView
+            } else {
+                setupView
             }
-            .padding(24)
         }
         .onAppear {
-            if eventPeerManager.isActive {
-                mode = .active
+            if role == .create && eventManager.eventCode.isEmpty {
+                eventManager.generateEventCode()
+            }
+            // Pre-select first card if available
+            if selectedCardID == nil, let first = store.myCards.first {
+                selectedCardID = first.id
             }
         }
         .onChange(of: eventPeerManager.receivedCards) { _, newValue in
@@ -48,119 +62,223 @@ struct EventModeSheet: View {
         }
     }
 
-    // MARK: - Subviews
+    // MARK: - Setup View
 
-    private var headerArea: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.softRose)
-                    .frame(width: 64, height: 64)
-                
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.black)
-            }
-            .padding(.top, 20)
+    private var setupView: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 28) {
 
-            VStack(spacing: 4) {
-                Text(eventPeerManager.isActive ? "Event Live" : "Event Mode")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                
-                Text(eventPeerManager.isActive ? "AUTO-EXCHANGING CARDS" : "NETWORKING AT SCALE")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.3))
-                    .tracking(2)
-            }
-        }
-    }
+                // MARK: Header
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color.softRose)
+                        .frame(width: 64, height: 64)
 
-    private var selectionView: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            
-            actionButton(title: "CREATE NEW SESSION", icon: "plus.circle.fill", color: .softRose) {
-                withAnimation { mode = .create }
-            }
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(.black)
+                }
+                .padding(.top, 40)
 
-            actionButton(title: "JOIN EXISTING SESSION", icon: "person.2.fill", color: .white.opacity(0.1), textColor: .white) {
-                withAnimation { mode = .join }
-            }
-            
-            Spacer()
-            
-            Text("In Event Mode, everyone in the room automatically receives your card and you receive theirs.")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.white.opacity(0.4))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 20)
-        }
-    }
+                VStack(spacing: 8) {
+                    Text("Event Mode")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
 
-    private var createEventView: some View {
-        VStack(spacing: 24) {
-            VStack(alignment: .leading, spacing: 10) {
-                fieldLabel("EVENT NAME")
-                TextField("e.g. Apple Event 2026", text: $eventName)
-                    .customField()
-            }
+                    Text("GROUP CARD EXCHANGE")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.3))
+                        .tracking(2)
+                }
 
-            VStack(alignment: .leading, spacing: 10) {
-                fieldLabel("FOLDER / TAG")
-                TextField("e.g. Devs", text: $folderName)
-                    .customField()
-            }
-
-            Spacer()
-
-            actionButton(title: "GENERATE CODE & START", icon: "bolt.fill", color: .softRose) {
-                startSession(isHost: true)
-            }
-            .disabled(eventName.isEmpty || folderName.isEmpty)
-            .opacity(eventName.isEmpty || folderName.isEmpty ? 0.4 : 1.0)
-            
-            Button("Back") { withAnimation { mode = .selection } }
-                .foregroundColor(.white.opacity(0.5))
-                .font(.system(size: 14, weight: .bold))
-        }
-    }
-
-    private var joinEventView: some View {
-        VStack(spacing: 24) {
-            VStack(alignment: .leading, spacing: 10) {
-                fieldLabel("ENTER EVENT CODE")
-                TextField("6-character code", text: $joinCode)
-                    .font(.system(size: 32, weight: .black, design: .monospaced))
-                    .multilineTextAlignment(.center)
-                    .textCase(.uppercase)
-                    .customField()
-                    .onChange(of: joinCode) { _, newValue in
-                        if newValue.count > 6 {
-                            joinCode = String(newValue.prefix(6))
+                // MARK: Role Picker
+                HStack(spacing: 0) {
+                    ForEach(EventRole.allCases, id: \.self) { r in
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                role = r
+                                if r == .create && eventManager.eventCode.isEmpty {
+                                    eventManager.generateEventCode()
+                                }
+                            }
+                        } label: {
+                            Text(r.rawValue.uppercased())
+                                .font(.system(size: 12, weight: .bold))
+                                .tracking(1)
+                                .foregroundColor(role == r ? .black : .white.opacity(0.5))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(
+                                    Capsule().fill(role == r ? Color.softRose : Color.clear)
+                                )
                         }
                     }
+                }
+                .padding(4)
+                .background(Color.white.opacity(0.06))
+                .clipShape(Capsule())
+                .padding(.horizontal, 8)
+
+                // MARK: Event Code
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("EVENT CODE")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.3))
+                        .tracking(1.5)
+                        .padding(.leading, 4)
+
+                    if role == .create {
+                        // Show generated code
+                        HStack {
+                            Text(eventManager.eventCode)
+                                .font(.system(size: 28, weight: .heavy, design: .monospaced))
+                                .foregroundColor(.softRose)
+                                .tracking(6)
+
+                            Spacer()
+
+                            Button {
+                                eventManager.generateEventCode()
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                        }
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(Color.white.opacity(0.06))
+                        )
+
+                        Text("Share this code with attendees")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.3))
+                            .padding(.leading, 4)
+                    } else {
+                        // Enter code manually
+                        TextField("Enter 6-digit code", text: $joinCode)
+                            .font(.system(size: 22, weight: .heavy, design: .monospaced))
+                            .foregroundColor(.white)
+                            .tracking(4)
+                            .multilineTextAlignment(.center)
+                            .textInputAutocapitalization(.characters)
+                            .autocorrectionDisabled()
+                            .padding(20)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(Color.white.opacity(0.06))
+                            )
+                            .onChange(of: joinCode) { _, newValue in
+                                if newValue.count > 6 {
+                                    joinCode = String(newValue.prefix(6))
+                                }
+                            }
+                    }
+                }
+                .padding(.horizontal, 8)
+
+                if role == .create {
+                    // MARK: Event Name
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("EVENT NAME")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.3))
+                            .tracking(1.5)
+                            .padding(.leading, 4)
+
+                        TextField("e.g. Figma Config 2026", text: $eventName)
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(20)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(Color.white.opacity(0.06))
+                            )
+                    }
+                    .padding(.horizontal, 8)
+                }
+
+                // MARK: Card Selector
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("CARD TO SHARE")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.3))
+                        .tracking(1.5)
+                        .padding(.leading, 4)
+
+                    if store.myCards.isEmpty {
+                        Text("No cards yet — create one first!")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.4))
+                            .padding(20)
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(Color.white.opacity(0.06))
+                            )
+                    } else {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(store.myCards) { card in
+                                    Button {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            selectedCardID = card.id
+                                        }
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    } label: {
+                                        cardTile(card)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 4)
+                        }
+                    }
+                }
+                .padding(.horizontal, 8)
+
+                Spacer(minLength: 20)
+
+                // MARK: Activate Button
+                Button {
+                    guard let card = selectedCard else { return }
+                    let code = activeCode
+                    let finalEventName = role == .create ? eventName : "Joined Experience"
+
+                    eventManager.goLive(event: finalEventName, folder: finalEventName, code: code, card: card)
+                    store.createFolder(name: finalEventName)
+                    eventPeerManager.start(eventCode: code, card: card)
+
+                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                    // Keep the sheet open to show active state
+                } label: {
+                    Text(role == .create ? "START EVENT" : "JOIN EVENT")
+                        .font(.system(size: 14, weight: .black, design: .rounded))
+                        .tracking(1)
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 64)
+                        .background(
+                            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                .fill(Color.softRose)
+                        )
+                }
+                .disabled(!canActivate)
+                .opacity(canActivate ? 1.0 : 0.4)
+                .padding(.bottom, 20)
             }
-
-            Spacer()
-
-            actionButton(title: "JOIN SESSION", icon: "person.2.fill", color: .skyBlue) {
-                startSession(isHost: false)
-            }
-            .disabled(joinCode.count < 4)
-            .opacity(joinCode.count < 4 ? 0.4 : 1.0)
-
-            Button("Back") { withAnimation { mode = .selection } }
-                .foregroundColor(.white.opacity(0.5))
-                .font(.system(size: 14, weight: .bold))
+            .padding(24)
         }
     }
+
+    // MARK: - Active Session View
 
     private var activeSessionView: some View {
         VStack(spacing: 32) {
             VStack(spacing: 12) {
-                Text(eventManager.eventName.isEmpty ? "Joined Session" : eventManager.eventName)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                Text(eventManager.eventName.isEmpty ? "Active Session" : eventManager.eventName)
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                 
                 Text(eventPeerManager.eventCode)
@@ -178,76 +296,64 @@ struct EventModeSheet: View {
             }
             .padding(.vertical, 20)
 
-            VStack(spacing: 12) {
+            VStack(spacing: 16) {
                 ProgressView()
                     .tint(.softRose)
                 Text(eventPeerManager.statusLabel)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white.opacity(0.6))
+                    .multilineTextAlignment(.center)
             }
 
             Spacer()
 
-            actionButton(title: "END SESSION", icon: "xmark.circle.fill", color: .red.opacity(0.8)) {
-                eventPeerManager.stopSession()
+            Button {
+                eventPeerManager.stop()
                 eventManager.stop()
                 dismiss()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "xmark.circle.fill")
+                    Text("END SESSION")
+                }
+                .font(.system(size: 14, weight: .black, design: .rounded))
+                .tracking(1)
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+                .frame(height: 64)
+                .background(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(Color.red.opacity(0.8))
+                )
             }
         }
-    }
-
-    // MARK: - Logic
-
-    private func startSession(isHost: Bool) {
-        // Generate a random code if hosting
-        let code = isHost ? generateRandomCode() : joinCode.uppercased()
-        
-        // Use the first card from myStack as our business card
-        guard let myCard = store.myCards.first else {
-            // Handle no cards case
-            return
-        }
-
-        if isHost {
-            eventManager.goLive(event: eventName, folder: folderName)
-            store.createFolder(name: folderName)
-        }
-        
-        eventPeerManager.startSession(eventCode: code, myCard: myCard)
-        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-        withAnimation { mode = .active }
-    }
-
-    private func generateRandomCode() -> String {
-        let letters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-        return String((0..<6).map { _ in letters.randomElement()! })
+        .padding(32)
     }
 
     // MARK: - Helpers
 
-    private func fieldLabel(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 10, weight: .bold, design: .rounded))
-            .foregroundColor(.white.opacity(0.3))
-            .tracking(1.5)
-            .padding(.leading, 4)
-    }
+    private func cardTile(_ card: CardModel) -> some View {
+        let isSelected = selectedCardID == card.id
+        return VStack(spacing: 8) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(card.theme.color.opacity(0.2))
+                    .frame(width: 100, height: 60)
 
-    private func actionButton(title: String, icon: String, color: Color, textColor: Color = .black, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                Text(title)
+                Text(String(card.fullName.prefix(2)).uppercased())
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(card.theme.color)
             }
-            .font(.system(size: 14, weight: .black, design: .rounded))
-            .tracking(1)
-            .foregroundColor(textColor)
-            .frame(maxWidth: .infinity)
-            .frame(height: 64)
-            .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(color)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(isSelected ? Color.softRose : Color.white.opacity(0.1), lineWidth: isSelected ? 2 : 1)
             )
+
+            Text(card.fullName)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(isSelected ? .white : .white.opacity(0.5))
+                .lineLimit(1)
+                .frame(width: 100)
         }
     }
 
@@ -261,16 +367,5 @@ struct EventModeSheet: View {
                 .foregroundColor(.white.opacity(0.3))
                 .tracking(1)
         }
-    }
-}
-
-extension View {
-    func customField() -> some View {
-        self.padding(20)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
-            )
-            .foregroundColor(.white)
     }
 }

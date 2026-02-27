@@ -4,7 +4,7 @@ struct MyCardsView: View {
     @EnvironmentObject var store: AppStore
     @EnvironmentObject var eventManager: EventModeManager
     @EnvironmentObject var peerManager: PeerManager
-    @EnvironmentObject var eventPeerManager: EventModePeerManager
+    @EnvironmentObject var eventPeerManager: EventPeerManager
 
     @State private var search = ""
     @State private var filter = "All"
@@ -135,7 +135,14 @@ struct MyCardsView: View {
                 }
             }
         }
-        .onAppear { store.fetchMyCards() }
+        .onAppear {
+            store.fetchMyCards()
+
+            // Wire event peer manager callback to save received cards
+            eventPeerManager.onCardReceived = { card in
+                handleReceived(card)
+            }
+        }
         .sheet(isPresented: $showEventSheet) {
             EventModeSheet()
                 .environmentObject(eventManager)
@@ -151,14 +158,11 @@ struct MyCardsView: View {
             }
             Button("Cancel", role: .cancel) { cardToDelete = nil }
         } message: { card in
-            Text(""\(card.fullName)" will be permanently deleted.")
+            Text("\"\(card.fullName)\" will be permanently deleted.")
         }
         .onChange(of: peerManager.receivedCard) { _, card in
             handleReceived(card)
             peerManager.receivedCard = nil
-        }
-        .onChange(of: eventPeerManager.receivedCards) { _, cards in
-            if let latest = cards.last { handleReceived(latest) }
         }
     }
 
@@ -213,7 +217,7 @@ struct MyCardsView: View {
             mutated.eventName = eventManager.eventName
             mutated.tags.append("Event")
         }
-        store.saveInboxCardIfNew(mutated)   // saveInboxCard now also sets activeTab = .inbox
+        store.saveInboxCardIfNew(mutated)
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             receivedToastName = card.fullName
         }

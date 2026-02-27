@@ -4,12 +4,12 @@ import AVFoundation
 /// A camera-based QR code scanner wrapped as a SwiftUI view.
 ///
 /// **Swift 6 concurrency notes:**
-/// • `ScannerUIView` is a UIKit class — it runs on the main actor.
-/// • The AVFoundation delegate callback is delivered on `.main` queue
-///   (configured in `setMetadataObjectsDelegate(_:queue:)`), so no
-///   actor-hopping is needed inside `metadataOutput(_:didOutput:from:)`.
-/// • `AVCaptureSession.startRunning()` is a blocking call that must run
-///   on a background thread; we use `Task.detached` for that.
+/// • `ScannerUIView` is a UIKit class — @MainActor isolated.
+/// • AVFoundation metadata callbacks are delivered on `.main` queue
+///   (configured in `setMetadataObjectsDelegate(_:queue:)`).
+/// • `AVCaptureSession.startRunning()` blocks; it runs in `Task.detached`.
+///   The session is captured as a local `let` *before* the detached task so
+///   Swift sees a Sendable value crossing the boundary, not a @MainActor property.
 @MainActor
 struct QRCodeScannerView: UIViewRepresentable {
 
@@ -31,7 +31,7 @@ struct QRCodeScannerView: UIViewRepresentable {
 // MARK: - ScannerUIView
 
 /// UIKit view that owns the AVCaptureSession.
-/// Main-actor isolated (inherits from UIView).
+/// @MainActor isolated (inherits from UIView).
 @MainActor
 final class ScannerUIView: UIView {
 
@@ -48,10 +48,13 @@ final class ScannerUIView: UIView {
         if superview != nil {
             setupSession()
         } else {
-            // Off screen — stop the session
-            let session = captureSession
-            Task.detached(priority: .userInitiated) {
-                session?.stopRunning()
+            // Capture the session as a local Sendable value *before* the
+            // detached task so we never send a @MainActor-isolated property
+            // across actor boundaries.
+            if let session = captureSession {
+                DispatchQueue.global(qos: .userInitiated).async {
+                    session.stopRunning()
+                }
             }
         }
     }
@@ -64,9 +67,34 @@ final class ScannerUIView: UIView {
     // MARK: Session Setup
 
     private func setupSession() {
-        guard captureSession == nil else { return }   // already set up
-        guard AVCaptureDevice.authorizationStatus(for: .video) != .denied else {
-            print("[Scanner] Camera access denied"); return
+        guard captureSession == nil else { return }
+
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+
+        switch status {
+        case .notDetermined:
+            // First launch — request permission, then retry setup
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self.setupSession()
+                    } else {
+                        self.showDeniedLabel()
+                    }
+                }
+            }
+            return
+
+        case .denied, .restricted:
+            print("[Scanner] Camera access denied or restricted")
+            showDeniedLabel()
+            return
+
+        case .authorized:
+            break // proceed
+
+        @unknown default:
+            break
         }
 
         let session = AVCaptureSession()
@@ -83,7 +111,7 @@ final class ScannerUIView: UIView {
         guard session.canAddOutput(output) else { return }
         session.addOutput(output)
 
-        // Deliver metadata callbacks on the main queue — matches @MainActor
+        // Deliver metadata callbacks on the main queue — matches @MainActor.
         output.setMetadataObjectsDelegate(self, queue: .main)
         output.metadataObjectTypes = [.qr]
 
@@ -94,10 +122,30 @@ final class ScannerUIView: UIView {
         previewLayer = preview
         captureSession = session
 
-        // startRunning() blocks — run it off the main thread
-        Task.detached(priority: .userInitiated) {
+        // startRunning() blocks — off-load to GCD.
+        // GCD doesn't participate in Swift's actor/Sendable analysis,
+        // so AVCaptureSession (which is not Sendable) crosses safely.
+        DispatchQueue.global(qos: .userInitiated).async {
             session.startRunning()
         }
+    }
+
+    /// Show a label when camera access was denied / restricted.
+    private func showDeniedLabel() {
+        let label = UILabel()
+        label.text = "Camera access required.\nGo to Settings → EcoCard → Camera"
+        label.textColor = .white
+        label.font = .systemFont(ofSize: 14, weight: .medium)
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: centerYAnchor),
+            label.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 16),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -16)
+        ])
     }
 }
 
@@ -107,8 +155,8 @@ final class ScannerUIView: UIView {
 extension ScannerUIView: AVCaptureMetadataOutputObjectsDelegate {
 
     nonisolated func metadataOutput(_ output: AVCaptureMetadataOutput,
-                         didOutput metadataObjects: [AVMetadataObject],
-                         from connection: AVCaptureConnection) {
+                                    didOutput metadataObjects: [AVMetadataObject],
+                                    from connection: AVCaptureConnection) {
         guard
             let obj    = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
             obj.type  == .qr,

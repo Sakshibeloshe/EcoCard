@@ -1,9 +1,3 @@
-//
-//  AddCardView.swift
-//  BeforeUSayIt
-//
-//  Created by SDC-USER on 06/02/26.
-//
 import SwiftUI
 
 struct AddCardView: View {
@@ -11,13 +5,12 @@ struct AddCardView: View {
     @State private var showEventDialog = false
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
+        ZStack {
+            Color.black.ignoresSafeArea()
 
-                VStack(alignment: .leading, spacing: 20) {
-
-                    TopNavBar()
+            VStack(alignment: .leading, spacing: 20) {
+                TopNavBar()
+                    .padding(.horizontal, 16)
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 20) {
@@ -61,20 +54,17 @@ struct AddCardView: View {
                         
                         Spacer(minLength: 120) // For tab bar
                     }
+                    .padding(.horizontal, 20)
                 }
-                .padding(.top, 10)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 10)
             }
-            .toolbar(.hidden, for: .navigationBar)
-            .sheet(isPresented: $showEventDialog) {
-                EventModeSheet()
-                    .environmentObject(eventManager)
-            }
-            .navigationDestination(for: CardType.self) { type in
-                CardEditorView(type: type)
-            }
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .sheet(isPresented: $showEventDialog) {
+            EventModeSheet()
+                .environmentObject(eventManager)
+        }
+        .navigationDestination(for: CardType.self) { type in
+            CardEditorView(type: type)
         }
     }
 }

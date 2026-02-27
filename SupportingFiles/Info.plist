@@ -27,6 +27,8 @@
     <array>
         <string>_ecocard-p2p._tcp</string>
         <string>_ecocard-p2p._udp</string>
+        <string>_ecocard-evt._tcp</string>
+        <string>_ecocard-evt._udp</string>
     </array>
 
     <!-- ═══════════════════════════════════════════════════════

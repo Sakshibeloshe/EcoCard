@@ -5,9 +5,10 @@ struct CardStackApp: App {
     @StateObject private var store = AppStore()
     @StateObject private var eventManager = EventModeManager()
     @StateObject private var peerManager = PeerManager()
-    @StateObject private var eventPeerManager = EventModePeerManager()
+    @StateObject private var eventPeerManager = EventPeerManager()
 
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+
 
     var body: some Scene {
         WindowGroup {
