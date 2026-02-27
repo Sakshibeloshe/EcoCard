@@ -89,26 +89,33 @@ struct FolderPickerSheet: View {
     }
 
     private func folderRow(icon: String, name: String, badge: String? = nil, isSelected: Bool, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        // Break conditional expressions into locals so the compiler can type-check each one.
+        let iconFg: Color    = isSelected ? .black : color
+        let iconBg: Color    = isSelected ? Color.white : Color.white.opacity(0.08)
+        let nameFg: Color    = isSelected ? .white : color
+        let rowBg: Color     = isSelected ? Color.white.opacity(0.08) : Color.white.opacity(0.04)
+        let rowBorder: Color = isSelected ? Color.white.opacity(0.15) : Color.white.opacity(0.05)
+
+        return Button(action: action) {
             HStack {
                 Image(systemName: icon)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(isSelected ? .black : color)
+                    .foregroundStyle(iconFg)
                     .frame(width: 40, height: 40)
-                    .background(isSelected ? Color.white : Color.white.opacity(0.08))
+                    .background(iconBg)
                     .clipShape(Circle())
 
                 Text(name)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(isSelected ? .white : color)
+                    .foregroundStyle(nameFg)
 
                 if let badge {
                     Text(badge)
                         .font(.system(size: 11, weight: .black))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Color.black)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 2)
-                        .background(.white)
+                        .background(Color.white)
                         .clipShape(Capsule())
                 }
 
@@ -121,11 +128,11 @@ struct FolderPickerSheet: View {
                 }
             }
             .padding(14)
-            .background(isSelected ? Color.white.opacity(0.08) : Color.white.opacity(0.04))
+            .background(rowBg)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(isSelected ? Color.white.opacity(0.15) : Color.white.opacity(0.05), lineWidth: 1)
+                    .stroke(rowBorder, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
