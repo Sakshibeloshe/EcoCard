@@ -95,20 +95,36 @@ extension CDCard {
             theme = mappedTheme
         }
         
+        // Extract complex logic into local variables to avoid compiler timeout
+        let modelId = self.id ?? UUID()
+        let modelCreatedAt = self.createdAt ?? Date()
+        let modelFullName = self.displayName ?? ""
+        let modelTitle = self.subtitle ?? ""
+        let modelCompany = self.org ?? ""
+        let modelBio = self.bio ?? ""
+        let modelPronouns = fieldMap["pronouns"] ?? ""
+        
+        let modelPhoto: String? = {
+            if let data = self.photoData {
+                return "data:image/jpeg;base64," + data.base64EncodedString()
+            }
+            return nil
+        }()
+        
         return CardModel(
-            id: self.id ?? UUID(),
+            id: modelId,
             type: self.type,
             theme: theme,
-            fullName: self.displayName ?? "",
-            createdAt: self.createdAt ?? Date(),
-            title: self.subtitle ?? "",
-            company: self.org ?? "",
-            bio: self.bio ?? "",
+            fullName: modelFullName,
+            createdAt: modelCreatedAt,
+            title: modelTitle,
+            company: modelCompany,
+            bio: modelBio,
             email: fieldMap["email"],
             website: fieldMap["website"],
             phone: fieldMap["phone"],
-            pronouns: fieldMap["pronouns"] ?? "",
-            photo: self.photoData != nil ? "data:image/jpeg;base64," + self.photoData!.base64EncodedString() : nil,
+            pronouns: modelPronouns,
+            photo: modelPhoto,
             locationCity: fieldMap["locationCity"],
             officeLocation: fieldMap["officeLocation"],
             linkedin: fieldMap["linkedin"],

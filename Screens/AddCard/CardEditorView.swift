@@ -207,12 +207,16 @@ struct CardEditorView: View {
     
     // Generate preview card from current values
     private var previewCard: CardModel {
-        CardModel(
+        let fullName = values["fullName"] ?? values["nickname"] ?? "Your Name"
+        let company = values["company"] ?? values["eventBadge"] ?? ""
+        let intent = selectedIntent.isEmpty ? nil : selectedIntent
+        
+        return CardModel(
             type: type,
             theme: selectedTheme,
-            fullName: values["fullName"] ?? values["nickname"] ?? "Your Name",
+            fullName: fullName,
             title: values["title"] ?? "",
-            company: values["company"] ?? values["eventBadge"] ?? "",
+            company: company,
             bio: values["bio"] ?? "",
             email: values["email"],
             website: values["website"],
@@ -230,7 +234,7 @@ struct CardEditorView: View {
             skillsTags: values["skillsTags"],
             emojiTags: values["emojiTags"],
             nickname: values["nickname"],
-            intent: selectedIntent.isEmpty ? nil : selectedIntent
+            intent: intent
         )
     }
 

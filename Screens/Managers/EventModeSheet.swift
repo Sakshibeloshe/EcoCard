@@ -53,7 +53,7 @@ struct EventModeSheet: View {
                 selectedCardID = first.id
             }
         }
-        .onChange(of: eventPeerManager.receivedCards) { _, newValue in
+        .onChange(of: eventPeerManager.receivedCards) { newValue in
             // Persist any newly-seen cards into the inbox, de-duping by ID.
             for card in newValue where !persistedCardIDs.contains(card.id) {
                 store.saveInboxCardIfNew(card)
