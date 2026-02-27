@@ -61,9 +61,6 @@ struct MyCardsView: View {
 
                     SearchBar(text: $search, placeholder: "Search cards")
 
-                    if !eventPeerManager.isActive {
-                        eventModeEntry.padding(.horizontal, 20)
-                    }
 
                     LazyVStack(spacing: 22) {
                         ForEach(filteredCards) { card in
@@ -190,25 +187,6 @@ struct MyCardsView: View {
         .buttonStyle(.plain)
     }
 
-    private var eventModeEntry: some View {
-        Button { showEventSheet = true } label: {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Start Event Session")
-                        .font(.system(size: 16, weight: .bold, design: .rounded)).foregroundColor(.white)
-                    Text("Share card with everyone at once")
-                        .font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.4))
-                }
-                Spacer()
-                Image(systemName: "chevron.right").foregroundColor(.white.opacity(0.2))
-            }
-            .padding(20)
-            .background(Color.white.opacity(0.05))
-            .cornerRadius(20)
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.05), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-    }
 
     private func handleReceived(_ card: CardModel?) {
         guard let card else { return }

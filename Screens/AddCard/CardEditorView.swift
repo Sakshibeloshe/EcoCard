@@ -16,6 +16,7 @@ struct CardEditorView: View {
     // Photo
     @State private var pickedImage: UIImage?
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var photoWasChanged: Bool = false
     
     // Theme selection
     @State private var selectedTheme: CardTheme = .pink
@@ -54,6 +55,13 @@ struct CardEditorView: View {
         
         _values = State(initialValue: initialValues)
         _selectedIntent = State(initialValue: FieldCatalog.intents(for: type).first ?? "")
+        
+        // Pre-fill photo from profile
+        if !profile.photo.isEmpty,
+           let data = Data(base64Encoded: profile.photo.replacingOccurrences(of: "data:image/jpeg;base64,", with: "")),
+           let img = UIImage(data: data) {
+            _pickedImage = State(initialValue: img)
+        }
     }
 
     var body: some View {
@@ -193,6 +201,7 @@ struct CardEditorView: View {
                    let img = UIImage(data: data) {
                     // Downscale to protect payload size during Multipeer send.
                     pickedImage = img.resizedIfNeeded(maxDimension: 512)
+                    photoWasChanged = true
                 }
             }
         }
@@ -211,6 +220,13 @@ struct CardEditorView: View {
         let company = values["company"] ?? values["eventBadge"] ?? ""
         let intent = selectedIntent.isEmpty ? nil : selectedIntent
         
+        let photoBase64: String? = {
+            if let img = pickedImage, let data = img.jpegData(compressionQuality: 0.7) {
+                return data.base64EncodedString()
+            }
+            return nil
+        }()
+
         return CardModel(
             type: type,
             theme: selectedTheme,
@@ -222,6 +238,7 @@ struct CardEditorView: View {
             website: values["website"],
             phone: values["phone"],
             pronouns: values["pronouns"],
+            photo: photoBase64,
             locationCity: values["locationCity"],
             officeLocation: values["officeLocation"],
             linkedin: values["linkedin"],
@@ -241,7 +258,28 @@ struct CardEditorView: View {
     private func saveCard() {
         do {
             let repo = CardRepository(context: context)
-            try repo.createCard(type: type, values: values, photo: pickedImage, theme: selectedTheme)
+            
+            // Determine sync flags
+            let profile = ProfileStore.shared
+            let usesProfileName = (values["fullName"] ?? profile.fullName) == profile.fullName
+            let usesProfileTitle = (values["title"] ?? profile.title) == profile.title
+            
+            // For company, CardRepository maps it from values["company"] ?? values["eventName"]
+            // We'll just check if values["company"] matches profile.company
+            let usesProfileCompany = (values["company"] ?? profile.company) == profile.company
+            
+            let usesProfilePhoto = !photoWasChanged
+            
+            try repo.createCard(
+                type: type,
+                values: values,
+                photo: pickedImage,
+                theme: selectedTheme,
+                usesProfileName: usesProfileName,
+                usesProfileTitle: usesProfileTitle,
+                usesProfileCompany: usesProfileCompany,
+                usesProfilePhoto: usesProfilePhoto
+            )
             print("Successfully saved card: \(type.title)")
             dismiss()
         } catch {

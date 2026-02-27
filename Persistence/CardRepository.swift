@@ -13,7 +13,11 @@ final class CardRepository {
         type: CardType,
         values: [String: String],
         photo: UIImage?,
-        theme: CardTheme = .pink
+        theme: CardTheme = .pink,
+        usesProfileName: Bool = true,
+        usesProfileTitle: Bool = true,
+        usesProfileCompany: Bool = true,
+        usesProfilePhoto: Bool = true
     ) throws {
 
         let card = CDCard(context: context)
@@ -24,6 +28,11 @@ final class CardRepository {
         card.themeHex = theme.rawValue
         card.isReceived = false
         card.isFavorite = false
+        
+        card.usesProfileName = usesProfileName
+        card.usesProfileTitle = usesProfileTitle
+        card.usesProfileCompany = usesProfileCompany
+        card.usesProfilePhoto = usesProfilePhoto
 
         // Photo
         if let photo {

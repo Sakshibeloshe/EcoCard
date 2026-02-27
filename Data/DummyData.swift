@@ -1,17 +1,14 @@
+import SwiftUI
 import Foundation
 
 enum DummyData {
 
     static let folders: [FolderModel] = [
-        .init(id: UUID(uuidString: "A1B2C3D4-0001-0001-0001-000000000001")!, name: "Hackathon"),
-        .init(id: UUID(uuidString: "A1B2C3D4-0002-0002-0002-000000000002")!, name: "College"),
-        .init(id: UUID(uuidString: "A1B2C3D4-0003-0003-0003-000000000003")!, name: "Design"),
+        .init(id: UUID(uuidString: "A1B2C3D4-0002-0002-0002-000000000002")!, name: "College", color: .softRose),
     ]
 
     static func cards(folders: [FolderModel]) -> [CardModel] {
-        let hackathonId = folders.first(where: { $0.name == "Hackathon" })?.id
         let collegeId   = folders.first(where: { $0.name == "College" })?.id
-        let designId    = folders.first(where: { $0.name == "Design" })?.id
 
         return [
             // ── MY CARDS (isReceived: false) ──────────────────────────────
@@ -39,7 +36,36 @@ enum DummyData {
 
             // ── INBOX CARDS (isReceived: true) ────────────────────────────
 
-            // Hackathon folder
+            // College folder (Exactly 2 cards)
+            CardModel(
+                type: .personal,
+                theme: .lime,
+                fullName: "Priya Nair",
+                bio: "CS @ BITS Pilani | Coder + dreamer. Building the future of AI.",
+                pronouns: "SHE/HER",
+                instagram: "instagram.com/priya.codes",
+                github: "github.com/priyanair",
+                isReceived: true,
+                isFavorite: true,
+                tags: ["College"],
+                folderId: collegeId
+            ),
+
+            CardModel(
+                type: .business,
+                theme: .pink,
+                fullName: "Alex Thompson",
+                title: "Software Engineer",
+                company: "TechNova",
+                bio: "Full stack dev with a passion for Swift and open source.",
+                email: "alex@technova.io",
+                linkedin: "linkedin.com/in/alexthompson",
+                isReceived: true,
+                tags: ["College"],
+                folderId: collegeId
+            ),
+
+            // Main Inbox (3 unique cards)
             CardModel(
                 type: .business,
                 theme: .lime,
@@ -52,69 +78,36 @@ enum DummyData {
                 isReceived: true,
                 isFavorite: true,
                 note: "Met at architecture week",
-                tags: ["Hackathon"],
-                folderId: hackathonId,
+                tags: ["Work"],
                 eventName: "Architecture Week"
             ),
-
+            
             CardModel(
                 type: .event,
                 theme: .pink,
                 fullName: "Arjun Mehta",
                 title: "iOS Developer",
                 company: "AppForge",
+                bio: "Building cool stuff for the world. Love hackathons.",
                 email: "arjun@appforge.io",
                 linkedin: "linkedin.com/in/arjunmehta",
                 github: "github.com/arjunmehta",
                 isReceived: true,
                 tags: ["Hackathon"],
-                folderId: hackathonId,
                 eventName: "Buildathon 2025",
                 intent: "Looking for co-founder"
             ),
 
-            // Design folder
             CardModel(
                 type: .social,
                 theme: .pink,
-                fullName: "Elena Rossi",
-                bio: "Sustainable design • coffee • cities",
-                pronouns: "SHE/HER",
-                instagram: "instagram.com/elenarossi",
-                portfolio: "elenarossi.design",
+                fullName: "Sophie Laurent",
+                bio: "Travel Blogger | Foodie. Exploring the streets of Paris.",
+                instagram: "instagram.com/sophie.travels",
                 isReceived: true,
-                tags: ["Design"],
-                folderId: designId
-            ),
-
-            CardModel(
-                type: .business,
-                theme: .lime,
-                fullName: "Marco Silva",
-                title: "UX Lead",
-                company: "Pixel & Co.",
-                email: "marco@pixelco.io",
-                website: "pixelco.io",
-                linkedin: "linkedin.com/in/marcosilva",
-                isReceived: true,
-                tags: ["Design"],
-                folderId: designId,
-                intent: "Open to freelance"
-            ),
-
-            // College folder
-            CardModel(
-                type: .personal,
-                theme: .lime,
-                fullName: "Priya Nair",
-                bio: "CS @ BITS Pilani | Coder + dreamer",
-                pronouns: "SHE/HER",
-                instagram: "instagram.com/priya.codes",
-                github: "github.com/priyanair",
-                isReceived: true,
-                tags: ["College"],
-                folderId: collegeId
-            ),
+                isFavorite: true,
+                note: "Really cool travel tips!"
+            )
         ]
     }
 }

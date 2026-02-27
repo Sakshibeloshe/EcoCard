@@ -1,5 +1,6 @@
 import SwiftUI
 import CoreData
+import Combine
 
 @MainActor
 final class AppStore: ObservableObject {
@@ -8,9 +9,74 @@ final class AppStore: ObservableObject {
     @Published var myCards: [CardModel] = []
     @Published var inboxCards: [CardModel] = []
     @Published var activeTab: Tab = .myCards  // Feature 4: programmatic tab switching
+    
+    private var cancellables = Set<AnyCancellable>()
+    private let profile = ProfileStore.shared
 
     init() {
         folders = DummyData.folders
+        fetchMyCards()
+        setupProfileObserver()
+        refreshProfileSync()
+    }
+
+    private func setupProfileObserver() {
+        // Observe ProfileStore changes to trigger sync
+        profile.objectWillChange
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    // Small delay to let @AppStorage values update
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                    self?.refreshProfileSync()
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    func refreshProfileSync() {
+        let context = PersistenceController.shared.container.viewContext
+        let request = NSFetchRequest<CDCard>(entityName: "CDCard")
+        request.predicate = NSPredicate(format: "isReceived == NO")
+        
+        do {
+            let results = try context.fetch(request)
+            var madeChanges = false
+            
+            for card in results {
+                if card.usesProfileName {
+                    if card.displayName != profile.fullName {
+                        card.displayName = profile.fullName
+                        madeChanges = true
+                    }
+                }
+                if card.usesProfileTitle {
+                    if card.subtitle != profile.title {
+                        card.subtitle = profile.title
+                        madeChanges = true
+                    }
+                }
+                if card.usesProfileCompany {
+                    if card.org != profile.company {
+                        card.org = profile.company
+                        madeChanges = true
+                    }
+                }
+                if card.usesProfilePhoto {
+                    let profilePhotoData = Data(base64Encoded: profile.photo.replacingOccurrences(of: "data:image/jpeg;base64,", with: ""))
+                    if card.photoData != profilePhotoData {
+                        card.photoData = profilePhotoData
+                        madeChanges = true
+                    }
+                }
+            }
+            
+            if madeChanges {
+                try context.save()
+                fetchMyCards()
+            }
+        } catch {
+            print("[AppStore] Profile Sync Error: \(error)")
+        }
     }
 
     func addMyCard(_ card: CardModel) {
@@ -60,7 +126,12 @@ final class AppStore: ObservableObject {
     func createFolder(name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, !folders.contains(where: { $0.name == trimmed }) else { return }
-        let newFolder = FolderModel(id: UUID(), name: trimmed)
+        
+        // Cycle through colors for variety
+        let colors: [Color] = [.skyBlue, .softRose, .freshLime, .lavenderPurple, .softTerracotta]
+        let color = colors[folders.count % colors.count]
+        
+        let newFolder = FolderModel(id: UUID(), name: trimmed, color: color)
         folders.append(newFolder)
     }
 
@@ -175,14 +246,11 @@ final class AppStore: ObservableObject {
             let dbMyCards = allModels.filter { !$0.isReceived }
             let dbInboxCards = allModels.filter { $0.isReceived }
 
-            if allModels.isEmpty {
-                let dummy = DummyData.cards(folders: folders)
-                self.myCards = dummy.filter { !$0.isReceived }
-                self.inboxCards = dummy.filter { $0.isReceived }
-            } else {
-                self.myCards = dbMyCards
-                self.inboxCards = dbInboxCards
-            }
+            let dummyData = DummyData.cards(folders: folders)
+            
+            self.myCards = dbMyCards.isEmpty ? dummyData.filter { !$0.isReceived } : dbMyCards
+            self.inboxCards = dbInboxCards.isEmpty ? dummyData.filter { $0.isReceived } : dbInboxCards
+            
         } catch {
             print("Failed to fetch cards: \(error)")
         }

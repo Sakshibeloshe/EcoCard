@@ -26,6 +26,12 @@ public class CDCard: NSManagedObject {
     @NSManaged public var note: String?
     @NSManaged public var tagsRaw: String? // Comma-separated tags
     
+    // Sync flags
+    @NSManaged public var usesProfileName: Bool
+    @NSManaged public var usesProfileTitle: Bool
+    @NSManaged public var usesProfileCompany: Bool
+    @NSManaged public var usesProfilePhoto: Bool
+    
     @NSManaged public var fields: NSSet?
 }
 
@@ -144,7 +150,11 @@ extension CDCard {
             tags: self.tags,
             folderId: self.folderId,
             eventName: self.org, // org stores eventName for event cards
-            intent: fieldMap["intent"]
+            intent: fieldMap["intent"],
+            usesProfileName: self.usesProfileName,
+            usesProfileTitle: self.usesProfileTitle,
+            usesProfileCompany: self.usesProfileCompany,
+            usesProfilePhoto: self.usesProfilePhoto
             
         )
     }
@@ -223,12 +233,33 @@ extension NSManagedObjectModel {
         let cardTagsRaw = NSAttributeDescription()
         cardTagsRaw.name = "tagsRaw"
         cardTagsRaw.attributeType = .stringAttributeType
+
+        let cardUsesProfileName = NSAttributeDescription()
+        cardUsesProfileName.name = "usesProfileName"
+        cardUsesProfileName.attributeType = .booleanAttributeType
+        cardUsesProfileName.defaultValue = true
+
+        let cardUsesProfileTitle = NSAttributeDescription()
+        cardUsesProfileTitle.name = "usesProfileTitle"
+        cardUsesProfileTitle.attributeType = .booleanAttributeType
+        cardUsesProfileTitle.defaultValue = true
+
+        let cardUsesProfileCompany = NSAttributeDescription()
+        cardUsesProfileCompany.name = "usesProfileCompany"
+        cardUsesProfileCompany.attributeType = .booleanAttributeType
+        cardUsesProfileCompany.defaultValue = true
+
+        let cardUsesProfilePhoto = NSAttributeDescription()
+        cardUsesProfilePhoto.name = "usesProfilePhoto"
+        cardUsesProfilePhoto.attributeType = .booleanAttributeType
+        cardUsesProfilePhoto.defaultValue = true
         
         cardEntity.properties = [
             cardId, cardTypeRaw, cardCreatedAt, cardUpdatedAt,
             cardThemeHex, cardPhotoData, cardDisplayName,
             cardSubtitle, cardOrg, cardBio, 
-            cardIsFavorite, cardIsReceived, cardFolderId, cardNote, cardTagsRaw
+            cardIsFavorite, cardIsReceived, cardFolderId, cardNote, cardTagsRaw,
+            cardUsesProfileName, cardUsesProfileTitle, cardUsesProfileCompany, cardUsesProfilePhoto
         ]
         
         // CDCardField Entity

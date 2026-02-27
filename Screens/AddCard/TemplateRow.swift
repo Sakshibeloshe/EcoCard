@@ -37,21 +37,6 @@ struct TemplateRow: View {
 
             Spacer()
 
-            // Mini card color preview strip
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [color.opacity(0.9), color.opacity(0.5)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 28, height: 40)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .stroke(color.opacity(0.3), lineWidth: 1)
-                )
-                .shadow(color: color.opacity(0.3), radius: 6, x: 0, y: 3)
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .bold))

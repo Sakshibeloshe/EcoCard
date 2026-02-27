@@ -13,81 +13,89 @@ struct CardFrontView: View {
                 // Crisp lifted shadow
                 .shadow(color: .black.opacity(0.35), radius: 10, x: 0, y: 6)
 
-            VStack(alignment: .leading, spacing: 14) {
-
-                // Top row: Name + type icon
+            VStack(alignment: .leading, spacing: 0) {
+                // Top Row: Name/Subtitle and Photo
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text(card.fullName)
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
-                                .foregroundStyle(Color.charcoalGrey)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-
-                            if let pronouns = card.pronouns, !pronouns.isEmpty {
-                                Text(pronouns.uppercased())
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundStyle(Color.charcoalGrey.opacity(0.4))
-                                    .tracking(0.5)
-                            }
-                        }
-
-                        // Role subtitle — small-caps weight for hierarchy
-                        Text(frontSubtitle.uppercased())
-                            .font(.system(size: 13, weight: .semibold, design: .rounded))
-                            .foregroundStyle(Color.charcoalGrey.opacity(0.55))
-                            .tracking(0.8)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(card.fullName)
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color.charcoalGrey)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                            .padding(.top, -6) // Precisely align cap-height with photo top
+
+                        if let pronouns = card.pronouns, !pronouns.isEmpty {
+                            Text(pronouns.uppercased())
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(Color.charcoalGrey.opacity(0.4))
+                                .tracking(1.0)
+                        } else if let subtitle = card.subtitle, !subtitle.isEmpty {
+                            Text(subtitle.uppercased())
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                                .foregroundStyle(Color.charcoalGrey.opacity(0.4))
+                                .tracking(1.0)
+                        }
                     }
 
                     Spacer()
 
-                    Image(systemName: card.type.icon)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(Color.charcoalGrey.opacity(0.6))
-                        .frame(width: 44, height: 44)
-                        .background(Color.charcoalGrey.opacity(0.08))
-                        .clipShape(Circle())
+                    // Photo Slot
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(Color.charcoalGrey.opacity(0.08))
+                            .frame(width: 80, height: 80)
+                            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 4)
+
+                        if let photoString = card.photo,
+                           let data = Data(base64Encoded: photoString.replacingOccurrences(of: "data:image/jpeg;base64,", with: "")),
+                           let uiImage = UIImage(data: data) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 80, height: 80)
+                                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        }
+                    }
                 }
 
-                Spacer(minLength: 0)
+                Spacer()
 
-                // Middle Section: Intent — lighter opacity for visual hierarchy
-                if let intent = card.intent, !intent.isEmpty {
-                    Text(intent.uppercased())
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color.charcoalGrey.opacity(0.6))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.charcoalGrey.opacity(0.05))
-                        .clipShape(Capsule())
-                        .padding(.bottom, 4)
+                // Bottom Left: Bio/Contact Info
+                VStack(alignment: .leading, spacing: 4) {
+                    if let subtitle = card.subtitle, !subtitle.isEmpty, card.pronouns != nil {
+                        Text(subtitle.uppercased())
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color.charcoalGrey.opacity(0.6))
+                            .tracking(1.0)
+                    }
+
+                    if let org = card.org, !org.isEmpty {
+                        Text(org.uppercased())
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color.charcoalGrey.opacity(0.8))
+                            .tracking(1.5)
+                            .padding(.bottom, 2)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        if let email = card.email, !email.isEmpty {
+                            Text(email)
+                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .foregroundStyle(Color.charcoalGrey.opacity(0.6))
+                        }
+                        if let website = card.website, !website.isEmpty {
+                            Text(website)
+                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .foregroundStyle(Color.charcoalGrey.opacity(0.6))
+                        }
+                    }
                 }
-
-                // Bottom: primary + secondary action row
-                CardActionRow(
-                    primary: card.primaryAction(),
-                    secondary: card.secondaryAction()
-                )
             }
             .padding(32)
 
-            // Type Tag (Center Bottom)
-            VStack {
-                Spacer()
-                Text(card.type.displayName.uppercased())
-                    .font(.system(size: 10, weight: .black))
-                    .foregroundStyle(Color.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color.black)
-                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 10, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 10, style: .continuous))
-            }
-
             // Border
             RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .stroke(Color.black.opacity(0.1), lineWidth: 2)
+                .stroke(Color.black.opacity(0.08), lineWidth: 1.5)
         }
         .aspectRatio(1.5, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))

@@ -1,8 +1,10 @@
 import SwiftUI
+import PhotosUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var profile = ProfileStore.shared
+    @State private var selectedPhotoItem: PhotosPickerItem?
     
     var body: some View {
         NavigationStack {
@@ -12,31 +14,62 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(spacing: 32) {
                         // Header Profile Preview
-                        VStack(spacing: 20) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.white.opacity(0.1))
-                                    .frame(width: 120, height: 120)
-                                
-                                Image(systemName: "person.fill")
-                                    .font(.system(size: 60))
-                                    .foregroundColor(.white.opacity(0.5))
-                                
-                                // Placeholder for photo if it exists
-                                if !profile.photo.isEmpty {
-                                    // In a real app, logic to load image
+                        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                            VStack(spacing: 20) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.white.opacity(0.1))
+                                        .frame(width: 120, height: 120)
+
+                                    if !profile.photo.isEmpty,
+                                       let data = Data(base64Encoded: profile.photo.replacingOccurrences(of: "data:image/jpeg;base64,", with: "")),
+                                       let uiImage = UIImage(data: data) {
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 120, height: 120)
+                                            .clipShape(Circle())
+                                    } else {
+                                        Image(systemName: "person.fill")
+                                            .font(.system(size: 60))
+                                            .foregroundColor(.white.opacity(0.5))
+                                    }
+
+                                    // Add/Edit Badge
+                                    VStack {
+                                        Spacer()
+                                        HStack {
+                                            Spacer()
+                                            Image(systemName: "pencil.circle.fill")
+                                                .symbolRenderingMode(.multicolor)
+                                                .font(.system(size: 32))
+                                                .background(Circle().fill(Color.obsidianBlack))
+                                        }
+                                    }
+                                }
+
+                                VStack(spacing: 4) {
+                                    Text(profile.fullName)
+                                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                                        .foregroundColor(.white)
+
+                                    Text(profile.title.uppercased())
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                        .foregroundColor(.white.opacity(0.4))
+                                        .tracking(2)
                                 }
                             }
-                            
-                            VStack(spacing: 4) {
-                                Text(profile.fullName)
-                                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
-                                
-                                Text(profile.title.uppercased())
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white.opacity(0.4))
-                                    .tracking(2)
+                        }
+                        .buttonStyle(.plain)
+                        .onChange(of: selectedPhotoItem) { newItem in
+                            Task {
+                                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                                   let img = UIImage(data: data) {
+                                    let resized = img.resizedIfNeeded(maxDimension: 512)
+                                    if let jpegData = resized.jpegData(compressionQuality: 0.7) {
+                                        profile.photo = jpegData.base64EncodedString()
+                                    }
+                                }
                             }
                         }
                         .padding(.top, 40)

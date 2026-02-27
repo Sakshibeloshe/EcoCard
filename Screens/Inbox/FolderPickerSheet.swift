@@ -124,7 +124,7 @@ struct FolderPickerSheet: View {
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.freshLime)
+                        .foregroundStyle(.green)
                 }
             }
             .padding(14)
@@ -138,3 +138,4 @@ struct FolderPickerSheet: View {
         .buttonStyle(.plain)
     }
 }
+
