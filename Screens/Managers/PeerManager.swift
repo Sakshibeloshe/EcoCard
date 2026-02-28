@@ -212,6 +212,13 @@ extension PeerManager: MCSessionDelegate {
                              fromPeer _: MCPeerID, with _: Progress) {}
     nonisolated func session(_: MCSession, didFinishReceivingResourceWithName _: String,
                              fromPeer _: MCPeerID, at _: URL?, withError _: Error?) {}
+
+    // Required when encryptionPreference != .none — must call handler or connection is dropped.
+    nonisolated func session(_: MCSession, didReceiveCertificate _: [Any]?,
+                             fromPeer _: MCPeerID,
+                             certificateHandler: @escaping (Bool) -> Void) {
+        certificateHandler(true)
+    }
 }
 
 // MARK: - MCNearbyServiceAdvertiserDelegate

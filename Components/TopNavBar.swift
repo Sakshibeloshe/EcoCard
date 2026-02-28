@@ -117,6 +117,9 @@ struct TopNavBar: View {
             Spacer()
 
             Button {
+                if eventManager.isHost {
+                    eventPeerManager.sendTerminationSignal()
+                }
                 eventManager.stop()
                 eventPeerManager.stop()
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()

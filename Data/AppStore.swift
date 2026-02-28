@@ -114,8 +114,25 @@ final class AppStore: ObservableObject {
     }
 
     func assignFolder(cardId: UUID, folderId: UUID?) {
+        let context = PersistenceController.shared.container.viewContext
+        let request = NSFetchRequest<CDCard>(entityName: "CDCard")
+        request.predicate = NSPredicate(format: "id == %@", cardId as CVarArg)
+
+        do {
+            if let result = try context.fetch(request).first {
+                result.folderId = folderId
+                try context.save()
+                print("[AppStore] 📁 Card \(cardId) assigned to folder \(String(describing: folderId))")
+            }
+        } catch {
+            print("[AppStore] ❌ Failed to assign folder: \(error)")
+        }
+
         if let i = inboxCards.firstIndex(where: {$0.id == cardId}) {
             inboxCards[i].folderId = folderId
+        }
+        if let i = myCards.firstIndex(where: {$0.id == cardId}) {
+            myCards[i].folderId = folderId
         }
     }
 

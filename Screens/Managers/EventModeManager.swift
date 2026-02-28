@@ -8,6 +8,7 @@ final class EventModeManager: ObservableObject {
     @Published var eventCode: String = ""
     @Published var selectedCard: CardModel? = nil
     @Published var isReceiverActive: Bool = false
+    @Published var isHost: Bool = false
 
     /// Generate a random 6-character alphanumeric event code.
     func generateEventCode() {
@@ -15,11 +16,12 @@ final class EventModeManager: ObservableObject {
         eventCode = String((0..<6).map { _ in chars.randomElement()! })
     }
 
-    func goLive(event: String, folder: String, code: String, card: CardModel) {
+    func goLive(event: String, folder: String, code: String, card: CardModel, isHost: Bool) {
         eventName = event
         folderName = folder
         eventCode = code
         selectedCard = card
+        self.isHost = isHost
         isLive = true
         isReceiverActive = true
     }
@@ -30,6 +32,7 @@ final class EventModeManager: ObservableObject {
         folderName = ""
         eventCode = ""
         selectedCard = nil
+        isHost = false
     }
 
     func toggleReceiver() {

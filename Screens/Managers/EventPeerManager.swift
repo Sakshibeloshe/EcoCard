@@ -13,13 +13,25 @@ import UIKit
 /// hop back to the main actor via Task.
 @MainActor
 final class EventPeerManager: NSObject, ObservableObject, @unchecked Sendable {
+    
+    struct EventPacket: Codable {
+        enum PacketType: String, Codable {
+            case card
+            case sessionEnded
+        }
+        let type: PacketType
+        let card: CardModel?
+    }
 
     // MARK: - Published State
 
     @Published var isActive: Bool = false
     @Published var connectedPeerCount: Int = 0
     @Published var receivedCards: [CardModel] = []
+    @Published var connectedPeers: [String] = []
     @Published var statusLabel: String = "Idle"
+    
+    var onSessionEnded: (() -> Void)?
 
     // MARK: - MC Objects
 
@@ -109,6 +121,7 @@ final class EventPeerManager: NSObject, ObservableObject, @unchecked Sendable {
         _eventCodeForBrowser = ""
         myCard = nil
         seenCardIDs = []
+        connectedPeers = []
         print("[EventPeerManager] ⏹ Stopped")
     }
 
@@ -120,17 +133,30 @@ final class EventPeerManager: NSObject, ObservableObject, @unchecked Sendable {
 
         let peers = session.connectedPeers
         let session = self.session
+        let packet = EventPacket(type: .card, card: card)
 
         DispatchQueue.global(qos: .userInitiated).async {
-            guard let data = try? JSONEncoder().encode(card) else { return }
+            guard let data = try? JSONEncoder().encode(packet) else { return }
             try? session.send(data, toPeers: peers, with: .reliable)
-            print("[EventPeerManager] 📤 Broadcast card to \(peers.count) peer(s)")
+            print("[EventPeerManager] 📤 Broadcast card packet to \(peers.count) peer(s)")
+        }
+    }
+
+    /// Notify all participants that the host is ending the session.
+    func sendTerminationSignal() {
+        guard !session.connectedPeers.isEmpty else { return }
+        let peers = session.connectedPeers
+        let session = self.session
+        let packet = EventPacket(type: .sessionEnded, card: nil)
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let data = try? JSONEncoder().encode(packet) else { return }
+            try? session.send(data, toPeers: peers, with: .reliable)
+            print("[EventPeerManager] 📢 Sent termination signal to \(peers.count) peer(s)")
         }
     }
 
     /// Rebroadcast a received card to all peers except the one who sent it.
-    /// This is the "flood-once" strategy that ensures propagation through
-    /// the mesh even when peers are not directly connected.
     nonisolated private func rebroadcast(_ data: Data, excluding sender: MCPeerID) {
         let peers = session.connectedPeers.filter { $0 != sender }
         guard !peers.isEmpty else { return }
@@ -153,6 +179,7 @@ extension EventPeerManager: MCSessionDelegate {
         Task { @MainActor [weak self] in
             guard let self else { return }
             self.connectedPeerCount = count
+            self.connectedPeers = session.connectedPeers.map { $0.displayName }
 
             switch state {
             case .connected:
@@ -180,34 +207,34 @@ extension EventPeerManager: MCSessionDelegate {
                              didReceive data: Data,
                              fromPeer peerID: MCPeerID) {
 
-        guard var card = try? JSONDecoder().decode(CardModel.self, from: data) else {
-            print("[EventPeerManager] ⚠️ Could not decode received data")
+        guard let packet = try? JSONDecoder().decode(EventPacket.self, from: data) else {
+            print("[EventPeerManager] ⚠️ Could not decode received packet")
+            // Fallback for older card-only data if necessary, but we updated all senders.
             return
         }
-        card.isReceived = true
-        let cardID = card.id
-        let senderName = peerID.displayName
 
-        // Rebroadcast BEFORE hopping to main actor — needs to happen fast
-        // We check seenCardIDs on the main actor below; the rebroadcast
-        // is idempotent because receivers also deduplicate.
-        // For the nonisolated context we do a quick rebroadcast regardless
-        // and let the main-actor side handle the actual dedup for storage.
-        rebroadcast(data, excluding: peerID)
+        switch packet.type {
+        case .card:
+            guard let card = packet.card else { return }
+            let cardID = card.id
+            let senderName = peerID.displayName
+            rebroadcast(data, excluding: peerID)
 
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-
-            // Deduplicate
-            guard !self.seenCardIDs.contains(cardID) else {
-                print("[EventPeerManager] 🔄 Duplicate skipped: \(card.fullName)")
-                return
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                guard !self.seenCardIDs.contains(cardID) else { return }
+                self.seenCardIDs.insert(cardID)
+                self.receivedCards.append(card)
+                self.onCardReceived?(card)
+                print("[EventPeerManager] 📥 New card from \(senderName): \(card.fullName)")
             }
 
-            self.seenCardIDs.insert(cardID)
-            self.receivedCards.append(card)
-            self.onCardReceived?(card)
-            print("[EventPeerManager] 📥 New card from \(senderName): \(card.fullName)")
+        case .sessionEnded:
+            print("[EventPeerManager] 🛑 Received termination from host (\(peerID.displayName))")
+            Task { @MainActor in
+                self.stop()
+                self.onSessionEnded?()
+            }
         }
     }
 
@@ -218,6 +245,13 @@ extension EventPeerManager: MCSessionDelegate {
                              fromPeer _: MCPeerID, with _: Progress) {}
     nonisolated func session(_: MCSession, didFinishReceivingResourceWithName _: String,
                              fromPeer _: MCPeerID, at _: URL?, withError _: Error?) {}
+
+    // Required when encryptionPreference != .none — must call handler or connection is dropped.
+    nonisolated func session(_: MCSession, didReceiveCertificate _: [Any]?,
+                             fromPeer _: MCPeerID,
+                             certificateHandler: @escaping (Bool) -> Void) {
+        certificateHandler(true)
+    }
 }
 
 // MARK: - MCNearbyServiceAdvertiserDelegate
@@ -252,12 +286,21 @@ extension EventPeerManager: MCNearbyServiceBrowserDelegate {
             return
         }
 
-        // Use the nonisolated(unsafe) copy that was set in start().
-        // Safe because it's only written on main actor before browsing begins.
+        // Use the nonisolated(unsafe) copies set in start() — safe read-only access.
         let myCode = _eventCodeForBrowser
+        let myName = myPeerID.displayName
 
         guard peerCode == myCode else {
             print("[EventPeerManager] 👀 Ignoring \(peerID.displayName) — code mismatch (\(peerCode) ≠ \(myCode))")
+            return
+        }
+
+        // Tie-breaking: only the peer whose display name sorts LOWER sends the
+        // invitation. This prevents both sides calling invitePeer() simultaneously,
+        // which causes a race where only one side fires .connected reliably.
+        // The higher-named peer will receive (and accept) the invitation instead.
+        guard myName < peerID.displayName else {
+            print("[EventPeerManager] 👀 Found \(peerID.displayName) — waiting for their invite (tie-break)")
             return
         }
 

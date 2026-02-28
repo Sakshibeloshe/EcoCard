@@ -16,7 +16,7 @@ let package = Package(
         .iOSApplication(
             name: "ViCa",
             targets: ["AppModule"],
-            bundleIdentifier: "pradeep.biswas-mitwpu.edu.in.wwdc",
+            bundleIdentifier: "pradeep.biswas-mitwpu.edu.ikin.wwdc",
             teamIdentifier: "M693R36JPD",
             displayVersion: "1.0",
             bundleVersion: "1",

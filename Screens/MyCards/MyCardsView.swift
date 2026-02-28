@@ -67,6 +67,7 @@ struct MyCardsView: View {
                             cardRow(card)
                         }
                     }
+                    .padding(.horizontal, 20)
                     .padding(.top, 12)
                     .padding(.bottom, 120)
                 }
@@ -160,7 +161,7 @@ struct MyCardsView: View {
                 }
             }
         }
-        .frame(height: UIScreen.main.bounds.width / 1.5 - 40 + 20)
+        .frame(height: UIScreen.main.bounds.width / 1.5 + 40)
     }
 
     // MARK: - Event Components
@@ -191,11 +192,21 @@ struct MyCardsView: View {
     private func handleReceived(_ card: CardModel?) {
         guard let card else { return }
         var mutated = card
+        mutated.isReceived = true
         if eventPeerManager.isActive {
             mutated.eventName = eventManager.eventName
-            mutated.tags.append("Event")
+            if !mutated.tags.contains("Event") { mutated.tags.append("Event") }
         }
         store.saveInboxCardIfNew(mutated)
+
+        // Assign to the folder the user named when starting/joining the event
+        if eventPeerManager.isActive, !eventManager.folderName.isEmpty {
+            let targetFolder = store.folders.first(where: { $0.name == eventManager.folderName })
+            if let fid = targetFolder?.id {
+                store.assignFolder(cardId: mutated.id, folderId: fid)
+            }
+        }
+
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             receivedToastName = card.fullName
         }

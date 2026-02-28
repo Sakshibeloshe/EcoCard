@@ -27,10 +27,11 @@ struct EventModeSheet: View {
     }
 
     private var canActivate: Bool {
+        let folderOK = !folderName.trimmingCharacters(in: .whitespaces).isEmpty
         if role == .create {
-            return !eventName.isEmpty && !eventManager.eventCode.isEmpty && selectedCard != nil
+            return !eventName.isEmpty && !eventManager.eventCode.isEmpty && selectedCard != nil && folderOK
         } else {
-            return joinCode.count >= 4 && selectedCard != nil
+            return joinCode.count >= 4 && selectedCard != nil && folderOK
         }
     }
 
@@ -60,6 +61,11 @@ struct EventModeSheet: View {
                 persistedCardIDs.insert(card.id)
             }
         }
+        .onAppear {
+            eventPeerManager.onSessionEnded = {
+                dismiss()
+            }
+        }
     }
 
     // MARK: - Setup View
@@ -71,6 +77,7 @@ struct EventModeSheet: View {
                 setupRolePicker
                 setupCodeSection
                 if role == .create { setupEventNameField }
+                setupFolderNameField
                 setupCardSelector
                 Spacer(minLength: 20)
                 setupActivateButton
@@ -193,6 +200,34 @@ struct EventModeSheet: View {
         .padding(.horizontal, 8)
     }
 
+    private var setupFolderNameField: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("SAVE TO FOLDER")
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .foregroundColor(.white.opacity(0.3))
+                .tracking(1.5)
+                .padding(.leading, 4)
+            HStack(spacing: 12) {
+                Image(systemName: "folder.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.softRose.opacity(0.7))
+                TextField(role == .create ? "e.g. Design Week" : "e.g. Config 2026", text: $folderName)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .autocorrectionDisabled()
+            }
+            .padding(20)
+            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.white.opacity(0.06))
+                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(folderName.isEmpty ? Color.clear : Color.softRose.opacity(0.3), lineWidth: 1)))
+            Text("Received cards will be placed in this folder")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.white.opacity(0.3))
+                .padding(.leading, 4)
+        }
+        .padding(.horizontal, 8)
+    }
+
     private var setupCardSelector: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("CARD TO SHARE")
@@ -234,9 +269,11 @@ struct EventModeSheet: View {
         return Button {
             guard let card = selectedCard else { return }
             let code = activeCode
-            let finalEventName = role == .create ? eventName : "Joined Experience"
-            eventManager.goLive(event: finalEventName, folder: finalEventName, code: code, card: card)
-            store.createFolder(name: finalEventName)
+            let folder = folderName.trimmingCharacters(in: .whitespaces)
+            let isHost = (role == .create)
+            let finalEventName = isHost ? eventName : (folder.isEmpty ? "Joined Session" : folder)
+            eventManager.goLive(event: finalEventName, folder: folder, code: code, card: card, isHost: isHost)
+            store.createFolder(name: folder)
             eventPeerManager.start(eventCode: code, card: card)
             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
         } label: {
@@ -275,7 +312,31 @@ struct EventModeSheet: View {
                 statusStat(value: "\(eventPeerManager.connectedPeerCount)", label: "PEERS")
                 statusStat(value: "\(eventPeerManager.receivedCards.count)", label: "CARDS")
             }
-            .padding(.vertical, 20)
+            .padding(.vertical, 8)
+
+            if !eventPeerManager.connectedPeers.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("CONNECTED PEERS")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white.opacity(0.3))
+                        .tracking(1.5)
+                        .padding(.leading, 8)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(eventPeerManager.connectedPeers, id: \.self) { name in
+                                Text(name)
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(Capsule().fill(Color.softRose.opacity(0.8)))
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 8)
+            }
 
             VStack(spacing: 16) {
                 ProgressView()
@@ -289,6 +350,9 @@ struct EventModeSheet: View {
             Spacer()
 
             Button {
+                if eventManager.isHost {
+                    eventPeerManager.sendTerminationSignal()
+                }
                 eventPeerManager.stop()
                 eventManager.stop()
                 dismiss()
