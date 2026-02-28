@@ -23,7 +23,7 @@ struct OnboardingView: View {
     // How-it-works slide content
     let slides: [(icon: String, color: Color, step: String, title: String, subtitle: String)] = [
         ("creditcard.fill",  Color(red:1.0, green:0.70, blue:0.75), "1 OF 3", "Create your card",       "Design your digital identity in seconds"),
-        ("iphone",           Color(red:0.60, green:0.85, blue:0.95), "2 OF 3", "Tap phones together",     "NFC-powered instant sharing"),
+        ("iphone",           Color(red:0.60, green:0.85, blue:0.95), "2 OF 3", "Bring phones closer",     "Multipeer Connectivity powered sharing"),
         ("bolt.fill",        Color(red:0.78, green:0.95, blue:0.60), "3 OF 3", "Instantly connect",       "No screenshots. No typing."),
     ]
 
@@ -72,6 +72,10 @@ struct OnboardingView: View {
                 if page < 7 {
                     bottomBar
                 }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                hideKeyboard()
             }
         }
     }
@@ -473,11 +477,17 @@ struct OnboardingView: View {
     }
 
     private func buildDraft() {
+        var base64Photo: String? = nil
+        if let data = photoData {
+            base64Photo = "data:image/jpeg;base64," + data.base64EncodedString()
+        }
+        
         draftCard = CardModel(
             type: .personal,
             theme: .pink,
             fullName: name.trimmingCharacters(in: .whitespaces),
             title: role.trimmingCharacters(in: .whitespaces),
+            photo: base64Photo,
             intent: intent.isEmpty ? nil : intent
         )
     }
@@ -485,11 +495,17 @@ struct OnboardingView: View {
     private func buildDraftAndFinish() {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
         if !trimmedName.isEmpty {
+            var base64Photo: String? = nil
+            if let data = photoData {
+                base64Photo = "data:image/jpeg;base64," + data.base64EncodedString()
+            }
+            
             let card = CardModel(
                 type: .personal,
                 theme: .pink,
                 fullName: trimmedName,
                 title: role.trimmingCharacters(in: .whitespaces),
+                photo: base64Photo,
                 intent: intent.isEmpty ? nil : intent
             )
             store.addMyCard(card)

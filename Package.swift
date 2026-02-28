@@ -8,13 +8,13 @@ import PackageDescription
 import AppleProductTypes
 
 let package = Package(
-    name: "wwdc",
+    name: "ViCa",
     platforms: [
         .iOS("16.0")
     ],
     products: [
         .iOSApplication(
-            name: "wwdc",
+            name: "ViCa",
             targets: ["AppModule"],
             bundleIdentifier: "pradeep.biswas-mitwpu.edu.in.wwdc",
             teamIdentifier: "M693R36JPD",

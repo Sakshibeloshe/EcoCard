@@ -87,7 +87,7 @@ struct ShareCardView: View {
             Spacer()
 
             HStack(spacing: 0) {
-                toggleButton(title: "TOUCH", mode: .touch)
+                toggleButton(title: "NEARBY", mode: .touch)
                 toggleButton(title: "QR",    mode: .qr)
             }
             .padding(4)

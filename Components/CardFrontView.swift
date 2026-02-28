@@ -22,7 +22,6 @@ struct CardFrontView: View {
                             .foregroundStyle(Color.charcoalGrey)
                             .lineLimit(1)
                             .minimumScaleFactor(0.6)
-                            .padding(.top, -6) // Precisely align cap-height with photo top
 
                         if let pronouns = card.pronouns, !pronouns.isEmpty {
                             Text(pronouns.uppercased())
@@ -91,11 +90,32 @@ struct CardFrontView: View {
                     }
                 }
             }
-            .padding(32)
+            .padding(.horizontal, 32)
+            .padding(.top, 32)
+            .padding(.bottom, 60) // Increased bottom padding to avoid overlap with label
 
             // Border
             RoundedRectangle(cornerRadius: 32, style: .continuous)
                 .stroke(Color.black.opacity(0.08), lineWidth: 1.5)
+
+            // Card Type Label (Attached to Bottom)
+            VStack {
+                Spacer()
+                Text(card.type.rawValue.uppercased())
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .tracking(3.0)
+                    .frame(width: 140, height: 44) // Specific size for the bottom tab
+                    .background(Color.black.opacity(0.85))
+                    .clipShape(
+                        .rect(
+                            topLeadingRadius: 20,
+                            bottomLeadingRadius: 0,
+                            bottomTrailingRadius: 0,
+                            topTrailingRadius: 20
+                        )
+                    )
+            }
         }
         .aspectRatio(1.5, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))

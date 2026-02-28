@@ -80,7 +80,7 @@ final class AppStore: ObservableObject {
     }
 
     func addMyCard(_ card: CardModel) {
-        myCards.insert(card, at: 0)
+        saveCard(card, isReceived: false)
     }
 
     func toggleFavorite(_ card: CardModel) {
@@ -152,22 +152,34 @@ final class AppStore: ObservableObject {
     // MARK: - Peer Transfer
 
     func saveInboxCard(_ card: CardModel) {
+        saveCard(card, isReceived: true)
+    }
+
+    private func saveCard(_ card: CardModel, isReceived: Bool) {
         let context = PersistenceController.shared.container.viewContext
 
         let cdCard = CDCard(context: context)
         cdCard.id = card.id
         cdCard.type = card.type
         cdCard.themeHex = card.theme.rawValue
-        cdCard.createdAt = Date()
+        cdCard.createdAt = card.createdAt
         cdCard.updatedAt = Date()
         cdCard.displayName = card.fullName
         cdCard.subtitle = card.title.isEmpty ? nil : card.title
         cdCard.org = card.company.isEmpty ? nil : card.company
         cdCard.bio = card.bio.isEmpty ? nil : card.bio
-        cdCard.isReceived = true
-        cdCard.isFavorite = false
-        cdCard.note = ""
-        cdCard.tagsRaw = ""
+        cdCard.isReceived = isReceived
+        cdCard.isFavorite = card.isFavorite
+        cdCard.note = card.note
+        cdCard.tagsRaw = card.tags.joined(separator: ",")
+        
+        // Handle Photo
+        if let photoString = card.photo {
+            let base64 = photoString.replacingOccurrences(of: "data:image/jpeg;base64,", with: "")
+            cdCard.photoData = Data(base64Encoded: base64)
+        } else {
+            cdCard.photoData = nil
+        }
 
         let fieldPairs: [(String, String?)] = [
             ("email",          card.email),
@@ -205,15 +217,21 @@ final class AppStore: ObservableObject {
         do {
             try context.save()
             var saved = card
-            saved.isReceived = true
-            inboxCards.insert(saved, at: 0)
-            // Feature 4: Auto-switch to inbox
-            withAnimation(.easeInOut(duration: 0.22)) {
-                activeTab = .inbox
+            saved.isReceived = isReceived
+            
+            if isReceived {
+                inboxCards.insert(saved, at: 0)
+                // Feature 4: Auto-switch to inbox
+                withAnimation(.easeInOut(duration: 0.22)) {
+                    activeTab = .inbox
+                }
+            } else {
+                myCards.insert(saved, at: 0)
             }
-            print("[AppStore] 💾 Inbox card saved: \(card.fullName)")
+            
+            print("[AppStore] 💾 Card saved: \(card.fullName) (isReceived: \(isReceived))")
         } catch {
-            print("[AppStore] ❌ Failed to save inbox card: \(error)")
+            print("[AppStore] ❌ Failed to save card: \(error)")
         }
     }
 
