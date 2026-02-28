@@ -8,19 +8,19 @@ import PackageDescription
 import AppleProductTypes
 
 let package = Package(
-    name: "wwdc",
+    name: "ViCa",
     platforms: [
         .iOS("16.0")
     ],
     products: [
         .iOSApplication(
-            name: "wwdc",
+            name: "ViCa",
             targets: ["AppModule"],
-            bundleIdentifier: "pradeep.biswas-mitwpu.edu.in.wwdc",
+            bundleIdentifier: "pradeep.biswas-mitwpu.edu.ikin.wwdc",
             teamIdentifier: "M693R36JPD",
             displayVersion: "1.0",
             bundleVersion: "1",
-            appIcon: .placeholder(icon: .note),
+            appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.pink),
             supportedDeviceFamilies: [
                 .pad,
@@ -31,13 +31,17 @@ let package = Package(
                 .landscapeRight,
                 .landscapeLeft,
                 .portraitUpsideDown(.when(deviceFamilies: [.pad]))
-            ]
+            ],
+            additionalInfoPlistContentFilePath: "SupportingFiles/Info.plist"
         )
     ],
     targets: [
         .executableTarget(
             name: "AppModule",
-            path: "."
+            path: ".",
+            resources: [
+                .process("Resources")
+            ]
         )
     ],
     swiftLanguageVersions: [.version("6")]

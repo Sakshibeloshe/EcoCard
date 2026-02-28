@@ -3,68 +3,124 @@ import SwiftUI
 
 struct ShareCardView: View {
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var peerManager: PeerManager
+    @EnvironmentObject var store: AppStore
+
     let card: CardModel
-    
-    @State private var shareMode: ShareMode = .touch // .touch or .qr
+
+    @State private var shareMode: ShareMode = .touch
     @State private var isAnimating = false
-    
-    enum ShareMode {
-        case touch, qr
-    }
+
+    // QR mode state
+    @State private var qrRole: QRRole = .sender          // sender shows QR; receiver scans
+    @State private var qrImage: UIImage? = nil
+    @State private var scannedCard: CardModel? = nil
+    @State private var showScannedSuccess = false
+
+    enum ShareMode { case touch, qr }
+    enum QRRole    { case sender, receiver }
+
+    // MARK: - Body
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            
-            VStack {
-                // Top Bar
-                HStack {
-                    Button("Cancel") { dismiss() }
-                        .foregroundColor(.white.opacity(0.5))
-                        .font(.system(size: 16, weight: .medium))
-                    
-                    Spacer()
-                    
-                    // Segmented Control / Toggle
-                    HStack(spacing: 0) {
-                        toggleButton(title: "TOUCH", mode: .touch)
-                        toggleButton(title: "QR", mode: .qr)
-                    }
-                    .padding(4)
-                    .background(Color.white.opacity(0.1))
-                    .clipShape(Capsule())
-                    
-                    Spacer()
-                    
-                    Button {
-                        // Share via system sheet
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.white.opacity(0.5))
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
 
+            VStack {
+                topBar
                 Spacer()
-                
-                // Content
+
                 TabView(selection: $shareMode) {
-                    touchModeView
-                        .tag(ShareMode.touch)
-                    
-                    qrModeView
-                        .tag(ShareMode.qr)
+                    touchModeView.tag(ShareMode.touch)
+                    qrModeView.tag(ShareMode.qr)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .frame(height: 500) // Adjust as needed
-                
+                .frame(height: 540)
+
                 Spacer()
             }
         }
+        .onChange(of: peerManager.isConnected) { connected in
+            // Auto-send when a peer connects, but only once per share session.
+            if connected && !peerManager.hasSentCard && shareMode == .touch {
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 400_000_000)
+                    peerManager.sendCard(card)
+                }
+            }
+        }
+        .onChange(of: shareMode) { mode in
+            if mode == .touch {
+                // Reset so we can send this card to another peer.
+                peerManager.resetForNewSend()
+            } else {
+                peerManager.stopBrowsing()
+                generateQRIfNeeded()
+            }
+        }
+        .onChange(of: peerManager.receivedCard) { card in
+            guard let card = card else { return }
+            // Save it locally
+            store.saveInboxCard(card)
+            // Show feedback in this sheet
+            withAnimation { showScannedSuccess = true }
+            scannedCard = card
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            // Note: MyCardsView also listens and shows a toast after we dismiss.
+        }
+        .onAppear {
+            generateQRIfNeeded()
+        }
     }
-    
+
+    // MARK: - Top Bar
+
+    private var topBar: some View {
+        HStack {
+            Button("Cancel") {
+                peerManager.stopBrowsing()
+                dismiss()
+            }
+            .foregroundColor(.white.opacity(0.5))
+            .font(.system(size: 16, weight: .medium))
+
+            Spacer()
+
+            HStack(spacing: 0) {
+                toggleButton(title: "NEARBY", mode: .touch)
+                toggleButton(title: "QR",    mode: .qr)
+            }
+            .padding(4)
+            .background(Color.white.opacity(0.1))
+            .clipShape(Capsule())
+
+            Spacer()
+
+            // Share button — exports QR image via system sheet
+            Button {
+                if shareMode == .qr, let img = qrImage {
+                    let av = UIActivityViewController(
+                        activityItems: [img],
+                        applicationActivities: nil
+                    )
+                    if let scene = UIApplication.shared.connectedScenes
+                        .compactMap({ $0 as? UIWindowScene }).first,
+                       let root = scene.windows.first?.rootViewController {
+                        root.present(av, animated: true)
+                    }
+                }
+            } label: {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(shareMode == .qr ? .white.opacity(0.8) : .white.opacity(0.3))
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+    }
+
+    // MARK: - Toggle Button
+
     private func toggleButton(title: String, mode: ShareMode) -> some View {
         Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -77,25 +133,22 @@ struct ShareCardView: View {
                 .foregroundColor(shareMode == mode ? .black : .white)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .fill(shareMode == mode ? Color.white : Color.clear)
-                )
+                .background(Capsule().fill(shareMode == mode ? Color.white : Color.clear))
         }
     }
-    
+
+    // MARK: - Touch Mode View
+
     private var touchModeView: some View {
-        VStack(spacing: 40) {
-            // Card Preview (Small)
+        VStack(spacing: 32) {
             CardView(card: card)
-                .frame(width: 280) // Reduced size
+                .frame(width: 280)
                 .scaleEffect(0.8)
-            
+
             ZStack {
-                // Ripples
                 ForEach(0..<3) { i in
                     Circle()
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        .stroke(rippleColor.opacity(0.25), lineWidth: 1)
                         .frame(width: 100, height: 100)
                         .scaleEffect(isAnimating ? 3 : 1)
                         .opacity(isAnimating ? 0 : 1)
@@ -106,51 +159,248 @@ struct ShareCardView: View {
                             value: isAnimating
                         )
                 }
-                
-                // Icon
-                Image(systemName: "wave.3.right") // Or similar NFC icon
+
+                Image(systemName: peerManager.isConnected ? "checkmark.circle.fill" : "wave.3.right")
                     .font(.system(size: 40))
-                    .foregroundColor(.white)
-                    .offset(x: -4) // Center optically
+                    .foregroundColor(rippleColor)
+                    .offset(x: peerManager.isConnected ? 0 : -4)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.6), value: peerManager.isConnected)
             }
             .onAppear {
                 isAnimating = true
+                // resetForNewSend: disconnects any old peer, keeps session alive,
+                // and restarts browsing — avoids TLS renegotiation on subsequent sends.
+                peerManager.resetForNewSend()
             }
-            
-            VStack(spacing: 8) {
-                Text("Tap Devices")
+            .onDisappear {
+                // Only stop browsing; keep the session alive for the next send.
+                peerManager.stopBrowsing()
+            }
+
+            VStack(spacing: 6) {
+                Text(statusTitle)
                     .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                
-                Text("HOLD TOP EDGES TOGETHER")
+                    .foregroundColor(rippleColor)
+
+                Text(statusSubtitle)
                     .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(rippleColor.opacity(0.5))
+                    .tracking(1.4)
+                    .multilineTextAlignment(.center)
+
+                // QR fallback hint — only shown when not yet connected
+                if !peerManager.isConnected && !peerManager.hasSentCard {
+                    Button {
+                        withAnimation { shareMode = .qr }
+                    } label: {
+                        Text("No connection? Use QR instead →")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.skyBlue.opacity(0.7))
+                            .underline()
+                    }
+                    .padding(.top, 4)
+                }
+            }
+            .overlay(
+                ZStack {
+                    if showScannedSuccess {
+                        VStack(spacing: 12) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 60))
+                                .foregroundColor(.green)
+                            
+                            Text("Received \(scannedCard?.fullName ?? "Card")!")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            Button("Close & View In Inbox") {
+                                showScannedSuccess = false
+                                dismiss()
+                            }
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.skyBlue)
+                            .padding(.top, 4)
+                        }
+                        .padding(32)
+                        .background(Color.black.opacity(0.9))
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .shadow(radius: 20)
+                    }
+                }
+            )
+        }
+    }
+
+    // MARK: - QR Mode View
+
+    private var qrModeView: some View {
+        VStack(spacing: 24) {
+
+            // Role switcher
+            HStack(spacing: 0) {
+                roleButton(title: "Show QR",  role: .sender)
+                roleButton(title: "Scan QR",  role: .receiver)
+            }
+            .padding(3)
+            .background(Color.white.opacity(0.08))
+            .clipShape(Capsule())
+
+            if qrRole == .sender {
+                senderQRView
+            } else {
+                receiverScanView
+            }
+        }
+    }
+
+    // MARK: Sender — shows the QR code
+
+    private var senderQRView: some View {
+        VStack(spacing: 20) {
+            if let img = qrImage {
+                Image(uiImage: img)
+                    .interpolation(.none)        // keeps pixels crisp
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 220, height: 220)
+                    .padding(20)
+                    .background(Color.white)
+                    .cornerRadius(20)
+                    .shadow(color: .white.opacity(0.15), radius: 20)
+                    .transition(.scale.combined(with: .opacity))
+            } else {
+                ProgressView()
+                    .frame(width: 220, height: 220)
+            }
+
+            VStack(spacing: 4) {
+                Text("Let them scan this")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+
+                Text("POINT THEIR CAMERA AT YOUR SCREEN")
+                    .font(.system(size: 10, weight: .black))
                     .foregroundColor(.white.opacity(0.35))
                     .tracking(1.4)
             }
         }
     }
-    
-    private var qrModeView: some View {
-        VStack(spacing: 40) {
-             // Card Preview
-             CardView(card: card)
-                 .frame(width: 280)
-                 .scaleEffect(0.8)
 
-             // QR Code Placeholder
-             Image(systemName: "qrcode")
-                 .resizable()
-                 .aspectRatio(contentMode: .fit)
-                 .frame(width: 180, height: 180)
-                 .foregroundColor(.white)
-                 .padding(20)
-                 .background(Color.white.opacity(0.1))
-                 .cornerRadius(20)
+    // MARK: Receiver — camera scanner
 
-             Text("SCAN TO CONNECT")
-                 .font(.system(size: 12, weight: .bold))
-                 .foregroundColor(.white.opacity(0.35))
-                 .tracking(1.4)
+    private var receiverScanView: some View {
+        VStack(spacing: 20) {
+            ZStack {
+                // Camera feed
+                QRCodeScannerView { scanned in
+                    if let decoded = QRCodeGenerator.decode(scanned) {
+                        scannedCard = decoded
+                        store.saveInboxCard(decoded)
+                        withAnimation { showScannedSuccess = true }
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    }
+                }
+                .frame(width: 240, height: 240)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                // Corner frame overlay (decorative)
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.skyBlue.opacity(0.6), lineWidth: 2)
+                    .frame(width: 240, height: 240)
+
+                if showScannedSuccess {
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.black.opacity(0.75))
+                        .frame(width: 240, height: 240)
+
+                    VStack(spacing: 10) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(.green)
+                        Text("Card Saved!")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                        if let name = scannedCard?.fullName {
+                            Text(name)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                    }
+                    .transition(.scale.combined(with: .opacity))
+                }
+            }
+
+            VStack(spacing: 4) {
+                Text(showScannedSuccess ? "Card Received!" : "Scan Sender's QR")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(showScannedSuccess ? .green : .white)
+                    .animation(.easeInOut(duration: 0.25), value: showScannedSuccess)
+
+                Text(showScannedSuccess
+                     ? "SAVED TO YOUR INBOX"
+                     : "AIM AT THE QR CODE ON THEIR SCREEN")
+                    .font(.system(size: 10, weight: .black))
+                    .foregroundColor(.white.opacity(0.35))
+                    .tracking(1.4)
+            }
+
+            // Scan again button
+            if showScannedSuccess {
+                Button {
+                    withAnimation { showScannedSuccess = false }
+                    scannedCard = nil
+                } label: {
+                    Text("Scan another card")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.skyBlue.opacity(0.8))
+                        .underline()
+                }
+            }
         }
+    }
+
+    // MARK: - Role toggle pill
+
+    private func roleButton(title: String, role: QRRole) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                qrRole = role
+            }
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        } label: {
+            Text(title)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(qrRole == role ? .black : .white.opacity(0.6))
+                .padding(.horizontal, 18)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(qrRole == role ? Color.white : Color.clear))
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func generateQRIfNeeded() {
+        guard qrImage == nil else { return }
+        let cardSnapshot = card        // capture value type — no actor crossing
+        Task.detached(priority: .userInitiated) {
+            let img = QRCodeGenerator.generate(from: cardSnapshot, size: 440)
+            await MainActor.run { qrImage = img }
+        }
+    }
+
+    private var statusTitle: String {
+        if peerManager.hasSentCard { return "Card Sent!" }
+        if peerManager.isConnected { return "Connected — Sending…" }
+        return "Searching…"
+    }
+
+    private var statusSubtitle: String {
+        if peerManager.hasSentCard { return "CARD DELIVERED SUCCESSFULLY" }
+        if peerManager.isConnected { return "FOUND RECEIVER — TRANSFERRING" }
+        return "HOLD DEVICES CLOSE TOGETHER"
+    }
+
+    private var rippleColor: Color {
+        peerManager.hasSentCard ? .green : (peerManager.isConnected ? Color.skyBlue : .white)
     }
 }

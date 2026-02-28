@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-struct CardModel: Identifiable, Hashable, Codable {
+struct CardModel: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
     var type: CardType
     var theme: CardTheme
@@ -42,6 +42,12 @@ struct CardModel: Identifiable, Hashable, Codable {
     var intent: String?
     var createdAt: Date
 
+    // Sync status (for My Cards)
+    var usesProfileName: Bool = true
+    var usesProfileTitle: Bool = true
+    var usesProfileCompany: Bool = true
+    var usesProfilePhoto: Bool = true
+
     init(
         id: UUID = UUID(),
         type: CardType,
@@ -75,7 +81,11 @@ struct CardModel: Identifiable, Hashable, Codable {
         tags: [String] = [],
         folderId: UUID? = nil,
         eventName: String? = nil,
-        intent: String? = nil
+        intent: String? = nil,
+        usesProfileName: Bool = true,
+        usesProfileTitle: Bool = true,
+        usesProfileCompany: Bool = true,
+        usesProfilePhoto: Bool = true
     ) {
         self.id = id
         self.type = type
@@ -110,6 +120,11 @@ struct CardModel: Identifiable, Hashable, Codable {
         self.eventName = eventName
         self.intent = intent
         self.createdAt = createdAt
+        
+        self.usesProfileName = usesProfileName
+        self.usesProfileTitle = usesProfileTitle
+        self.usesProfileCompany = usesProfileCompany
+        self.usesProfilePhoto = usesProfilePhoto
     }
     
     // MARK: - Computed Properties

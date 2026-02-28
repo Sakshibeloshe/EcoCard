@@ -22,12 +22,26 @@ struct PremiumCardPattern: View {
             }
             .blur(radius: 40)
             
+            // 2.5. The Dot Grid Pattern (Professional Texture)
+            Canvas { context, size in
+                let dotSize: CGFloat = 1.6
+                let spacing: CGFloat = 10.0
+                
+                for x in stride(from: spacing/2, to: size.width, by: spacing) {
+                    for y in stride(from: spacing/2, to: size.height, by: spacing) {
+                        let rect = CGRect(x: x, y: y, width: dotSize, height: dotSize)
+                        context.fill(Path(ellipseIn: rect), with: .color(.black.opacity(0.06)))
+                    }
+                }
+            }
+            .blendMode(.multiply)
+            
             // 3. The Grain/Noise Overlay
             // Note: If "noise_texture" is missing, this will just be a subtle opacity layer
             Rectangle()
                 .fill(Color.black.opacity(0.03))
                 .overlay(
-                    Image("noise_texture") // Add a grain PNG to your assets
+                    Image("noise_texture", bundle: .module)
                         .resizable(resizingMode: .tile)
                         .opacity(0.05)
                         .blendMode(.overlay)

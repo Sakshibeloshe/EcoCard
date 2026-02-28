@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+    <!-- ═══════════════════════════════════════════════════════
+         MultipeerConnectivity — Near‑to‑Near Card Transfer
+         ═══════════════════════════════════════════════════════ -->
+
+    <!--
+        Required for iOS 14+ when using MultipeerConnectivity.
+        Tells the OS why the app needs local-network access
+        (Bonjour peer discovery over Wi-Fi).
+    -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>EcoCard uses your local network to discover and connect with nearby devices for card sharing.</string>
+
+    <!--
+        Declares the Bonjour service types that MultipeerConnectivity
+        advertises and browses for. iOS blocks MC traffic unless both
+        _tcp and _udp variants are listed here.
+
+        The service name must match PeerManager.serviceType ("ecocard-p2p").
+    -->
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_ecocard-p2p._tcp</string>
+        <string>_ecocard-p2p._udp</string>
+        <string>_ecocard-evt._tcp</string>
+        <string>_ecocard-evt._udp</string>
+    </array>
+
+    <!-- ═══════════════════════════════════════════════════════
+         Camera — QR Code Scanner
+         ═══════════════════════════════════════════════════════ -->
+
+    <!--
+        Required for AVFoundation camera access used by QRCodeScannerView.
+        iOS will show this string in the system permission alert.
+    -->
+    <key>NSCameraUsageDescription</key>
+    <string>EcoCard uses the camera to scan QR codes and receive business cards from nearby devices.</string>
+
+</dict>
+</plist>

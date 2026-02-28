@@ -15,6 +15,8 @@ struct CardEditorView: View {
 
     // Photo
     @State private var pickedImage: UIImage?
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var photoWasChanged: Bool = false
     
     // Theme selection
     @State private var selectedTheme: CardTheme = .pink
@@ -53,6 +55,13 @@ struct CardEditorView: View {
         
         _values = State(initialValue: initialValues)
         _selectedIntent = State(initialValue: FieldCatalog.intents(for: type).first ?? "")
+        
+        // Pre-fill photo from profile
+        if !profile.photo.isEmpty,
+           let data = Data(base64Encoded: profile.photo.replacingOccurrences(of: "data:image/jpeg;base64,", with: "")),
+           let img = UIImage(data: data) {
+            _pickedImage = State(initialValue: img)
+        }
     }
 
     var body: some View {
@@ -75,6 +84,64 @@ struct CardEditorView: View {
                             .tracking(1.5)
                         
                         ThemeColorPicker(selectedTheme: $selectedTheme)
+                    }
+
+                    // Photo Picker Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("PHOTO")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.4))
+                            .tracking(1.5)
+
+                        PhotosPicker(
+                            selection: $selectedPhotoItem,
+                            matching: .images,
+                            photoLibrary: .shared()
+                        ) {
+                            HStack(spacing: 14) {
+                                // Thumbnail or placeholder
+                                ZStack {
+                                    if let img = pickedImage {
+                                        Image(uiImage: img)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 56, height: 56)
+                                            .clipShape(Circle())
+                                    } else {
+                                        Circle()
+                                            .fill(Color.white.opacity(0.08))
+                                            .frame(width: 56, height: 56)
+                                        Image(systemName: "person.crop.circle.badge.plus")
+                                            .font(.system(size: 22))
+                                            .foregroundStyle(.white.opacity(0.5))
+                                    }
+                                }
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(pickedImage == nil ? "Add Profile Photo" : "Change Photo")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                    Text("FROM YOUR PHOTO LIBRARY")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.white.opacity(0.35))
+                                        .tracking(1.2)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.3))
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .background(Color.charcoalGrey.opacity(0.6))
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                            )
+                        }
                     }
 
                     // Form Fields
@@ -128,6 +195,16 @@ struct CardEditorView: View {
         .navigationTitle(type.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .onChange(of: selectedPhotoItem) { newItem in
+            Task { @MainActor in
+                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                   let img = UIImage(data: data) {
+                    // Downscale to protect payload size during Multipeer send.
+                    pickedImage = img.resizedIfNeeded(maxDimension: 512)
+                    photoWasChanged = true
+                }
+            }
+        }
         .fullScreenCover(isPresented: $showPreview) {
             CardEditorPreview(
                 card: previewCard,
@@ -139,17 +216,29 @@ struct CardEditorView: View {
     
     // Generate preview card from current values
     private var previewCard: CardModel {
-        CardModel(
+        let fullName = values["fullName"] ?? values["nickname"] ?? "Your Name"
+        let company = values["company"] ?? values["eventBadge"] ?? ""
+        let intent = selectedIntent.isEmpty ? nil : selectedIntent
+        
+        let photoBase64: String? = {
+            if let img = pickedImage, let data = img.jpegData(compressionQuality: 0.7) {
+                return data.base64EncodedString()
+            }
+            return nil
+        }()
+
+        return CardModel(
             type: type,
             theme: selectedTheme,
-            fullName: values["fullName"] ?? values["nickname"] ?? "Your Name",
+            fullName: fullName,
             title: values["title"] ?? "",
-            company: values["company"] ?? values["eventBadge"] ?? "",
+            company: company,
             bio: values["bio"] ?? "",
             email: values["email"],
             website: values["website"],
             phone: values["phone"],
             pronouns: values["pronouns"],
+            photo: photoBase64,
             locationCity: values["locationCity"],
             officeLocation: values["officeLocation"],
             linkedin: values["linkedin"],
@@ -162,14 +251,35 @@ struct CardEditorView: View {
             skillsTags: values["skillsTags"],
             emojiTags: values["emojiTags"],
             nickname: values["nickname"],
-            intent: selectedIntent.isEmpty ? nil : selectedIntent
+            intent: intent
         )
     }
 
     private func saveCard() {
         do {
             let repo = CardRepository(context: context)
-            try repo.createCard(type: type, values: values, photo: pickedImage, theme: selectedTheme)
+            
+            // Determine sync flags
+            let profile = ProfileStore.shared
+            let usesProfileName = (values["fullName"] ?? profile.fullName) == profile.fullName
+            let usesProfileTitle = (values["title"] ?? profile.title) == profile.title
+            
+            // For company, CardRepository maps it from values["company"] ?? values["eventName"]
+            // We'll just check if values["company"] matches profile.company
+            let usesProfileCompany = (values["company"] ?? profile.company) == profile.company
+            
+            let usesProfilePhoto = !photoWasChanged
+            
+            try repo.createCard(
+                type: type,
+                values: values,
+                photo: pickedImage,
+                theme: selectedTheme,
+                usesProfileName: usesProfileName,
+                usesProfileTitle: usesProfileTitle,
+                usesProfileCompany: usesProfileCompany,
+                usesProfilePhoto: usesProfilePhoto
+            )
             print("Successfully saved card: \(type.title)")
             dismiss()
         } catch {
